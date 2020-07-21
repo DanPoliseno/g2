@@ -97,6 +97,7 @@ module ServicesHelper
       fields: fields_for_service(integration),
       inherit_from_id: integration.inherit_from_id,
       integration_level: integration_level(integration),
+      editable: integration.editable?.to_s,
       cancel_path: scoped_integrations_path,
       can_test: integration.can_test?.to_s,
       test_path: scoped_test_integration_path(integration)

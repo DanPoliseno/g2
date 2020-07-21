@@ -34,6 +34,7 @@ function parseDatasetToProps(data) {
   const {
     showActive,
     activated,
+    editable,
     canTest,
     commitEvents,
     mergeRequestEvents,
@@ -48,6 +49,7 @@ function parseDatasetToProps(data) {
     showActive,
     type,
     cancelPath,
+    editable,
     canTest,
     testPath,
     triggerFieldsProps: {
