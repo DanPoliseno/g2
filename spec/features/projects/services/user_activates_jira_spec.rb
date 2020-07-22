@@ -6,7 +6,7 @@ RSpec.describe 'User activates Jira', :js do
   include_context 'project service activation'
   include_context 'project service Jira context'
 
-  describe 'user sets and activates Jira Service' do
+  describe 'user tests Jira Service' do
     context 'when Jira connection test succeeds' do
       before do
         server_info = { key: 'value' }.to_json
@@ -67,7 +67,7 @@ RSpec.describe 'User activates Jira', :js do
       stub_jira_service_test
       visit_project_integration('Jira')
       fill_form(disable: true)
-      click_button('Save changes')
+      click_save_integration
     end
 
     it 'saves but does not activate the Jira service' do

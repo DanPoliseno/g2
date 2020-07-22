@@ -22,8 +22,12 @@ RSpec.shared_context 'project service activation' do
     find('input[name="service[active]"]').click
   end
 
+  def click_save_integration
+    click_link('Save changes')
+  end
+
   def click_test_integration
-    click_button('Test settings and save changes')
+    click_link('Test settings')
   end
 
   def click_test_then_save_integration
