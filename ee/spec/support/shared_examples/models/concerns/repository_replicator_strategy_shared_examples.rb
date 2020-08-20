@@ -69,6 +69,60 @@ RSpec.shared_examples 'a repository replicator' do
     end
   end
 
+  describe '#consume_event_updated' do
+    context 'in replicables_for_geo_node list' do
+      it 'runs SnippetRepositorySyncService service' do
+        model_record.save!
+
+        sync_service = double
+
+        expect(sync_service).to receive(:execute)
+
+        expect(::Geo::RepositoryBaseSsfSyncService)
+          .to receive(:new).with(replicator: replicator)
+                .and_return(sync_service)
+
+        replicator.consume_event_updated({})
+      end
+    end
+
+    context 'not in replicables_for_geo_node list' do
+      it 'runs SnippetRepositorySyncService service' do
+        expect(::Geo::RepositoryBaseSsfSyncService)
+          .not_to receive(:new)
+
+        replicator.consume_event_updated({})
+      end
+    end
+  end
+
+  describe '#consume_event_deleted' do
+    context 'in replicables_for_geo_node list' do
+      it 'runs Repositories::DestroyService service' do
+        model_record.save!
+
+        sync_service = double
+
+        expect(sync_service).to receive(:execute).and_return({ status: :success })
+
+        expect(::Repositories::DestroyService)
+          .to receive(:new).with(replicator.repository)
+                .and_return(sync_service)
+
+        replicator.consume_event_deleted({})
+      end
+    end
+
+    context 'not in replicables_for_geo_node list' do
+      it 'runs SnippetRepositorySyncService service' do
+        expect(::Repositories::DestroyService)
+          .not_to receive(:new)
+
+        replicator.consume_event_deleted({})
+      end
+    end
+  end
+
   describe '#model' do
     let(:invoke_model) { replicator.class.model }
 
