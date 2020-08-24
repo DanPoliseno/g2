@@ -87,13 +87,13 @@ RSpec.shared_examples "migrates" do |to_store:, from_store: nil|
     it 'does not execute migrate!' do
       expect(subject).not_to receive(:unsafe_migrate!)
 
-      expect { migrate(to) }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
+      expect { migrate(to) }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
     end
 
     it 'does not execute use_file' do
       expect(subject).not_to receive(:unsafe_use_file)
 
-      expect { subject.use_file }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
+      expect { subject.use_file }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
     end
   end
 

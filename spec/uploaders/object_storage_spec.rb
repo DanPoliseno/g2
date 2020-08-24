@@ -337,7 +337,7 @@ RSpec.describe ObjectStorage do
       when_file_is_in_use do
         expect(uploader).not_to receive(:unsafe_migrate!)
 
-        expect { uploader.migrate!(described_class::Store::REMOTE) }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
+        expect { uploader.migrate!(described_class::Store::REMOTE) }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
       end
     end
 
@@ -345,7 +345,7 @@ RSpec.describe ObjectStorage do
       when_file_is_in_use do
         expect(uploader).not_to receive(:unsafe_use_file)
 
-        expect { uploader.use_file }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
+        expect { uploader.use_file }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
       end
     end
 
