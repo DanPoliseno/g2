@@ -35,6 +35,7 @@ RSpec.describe 'Project remote mirror', :feature do
 
     context 'pushing to a remote' do
       let(:remote_project) { create(:project, :empty_repo) }
+      let!(:lfs_object) { create(:lfs_objects_project, project: project).lfs_object }
 
       before do
         remote_project.add_maintainer(user)
@@ -44,8 +45,6 @@ RSpec.describe 'Project remote mirror', :feature do
       end
 
       it 'transfers code and LFS objects' do
-        lfs_object = create(:lfs_objects_project, project: project).lfs_object
-
         Projects::UpdateRemoveMirrorService.new(project, user).execute(remote_mirror)
 
         expect(remote_project.lfs_objects.reload.count).to eq(1)
