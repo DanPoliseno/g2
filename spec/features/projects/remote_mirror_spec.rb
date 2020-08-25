@@ -45,7 +45,7 @@ RSpec.describe 'Project remote mirror', :feature do
       end
 
       it 'transfers code and LFS objects' do
-        Projects::UpdateRemoveMirrorService.new(project, user).execute(remote_mirror)
+        Projects::UpdateRemoteMirrorService.new(project, user).execute(remote_mirror)
 
         expect(remote_project.lfs_objects.reload.count).to eq(1)
         expect(remote_project.commit).to eq(project.commit)
