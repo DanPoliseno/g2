@@ -77,35 +77,8 @@ module Projects
 
       raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
 
-      # TODO: we could parallelize this
       rsp['objects'].each do |spec|
-        actions = spec.dig('actions')
-        upload = spec.dig('actions', 'upload')
-        verify = spec.dig('actions', 'verify')
-        object = objects[spec['oid']]
-
-        # The server already has this object, or we don't need to upload it
-        next unless actions && upload
-
-        # The server wants us to upload the object but something is wrong
-        unless object && object.size == spec['size']
-          logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object")
-          next
-        end
-
-        # TODO: we need to discover credentials in some cases. These would come
-        # from the remote mirror's credentials
-        Gitlab::HTTP.post(
-          upload['href'],
-          body_stream: object.file,
-          headers: upload['header'],
-          format: 'application/octet-stream'
-        )
-
-        # TODO: Now we've uploaded, verify the upload if requested
-        if verify
-          logger.warn("Was asked to verify #{spec['oid']} but didn't: #{verify}")
-        end
+        RemoteMirrorLfsObjectUploaderWorker.perform_async(spec, objects[spec['oid']])
       end
     end
 
