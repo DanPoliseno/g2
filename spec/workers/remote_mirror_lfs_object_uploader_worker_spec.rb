@@ -3,8 +3,6 @@
 require 'spec_helper'
 
 RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
-  # let_it_be(:project) { create(:project, :repository, :remote_mirror) }
-  # let_it_be(:mirror) { project.remote_mirrors.first }
   let(:logger) { subject.send(:logger) }
 
   let(:object) { create(:lfs_object) }
