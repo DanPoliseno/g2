@@ -32,7 +32,7 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
 
   shared_examples "returns early without attempting upload" do
     it "returns early without attempting upload" do
-      expect(Gitlab::HTTP).not_to receive(:post)
+      expect(Gitlab::Lfs::Client).not_to receive(:upload)
 
       expect(subject.perform(spec, object)).to be_nil
     end
@@ -40,35 +40,34 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
 
   describe "#perform" do
     context "upload to remote server is requested" do
-      it "attempts to upload the LFS object" do
-        expect(Gitlab::HTTP).to receive(:post)
+      before do
+        expect_next_instance_of(Gitlab::Lfs::Client) do |instance|
+          expect(instance).to receive(:upload)
+        end
+      end
 
+      it "attempts to upload the LFS object" do
         subject.perform(spec, object)
       end
 
-      context "when 'verify' is requested" do
+      context "when 'verify' action is present" do
         before do
-          expect(Gitlab::HTTP).to receive(:post)
+          expect_any_instance_of(Gitlab::Lfs::Client).to receive(:verify).and_call_original
         end
 
         it "logs a warning about the lack of a verify routine" do
-          expect(logger)
-            .to receive(:warn)
-            .with("Was asked to verify #{spec['oid']} but didn't: #{spec['actions']['verify']}")
-
           subject.perform(spec, object)
         end
       end
 
-      context "when 'verify' is missing" do
+      context "when 'verify' action is missing" do
         before do
-          expect(Gitlab::HTTP).to receive(:post)
           spec['actions'].delete('verify')
+
+          expect_any_instance_of(Gitlab::Lfs::Client).not_to receive(:verify).and_call_original
         end
 
-        it "logs a warning about the lack of a verify routine" do
-          expect(Gitlab::HTTP).not_to receive(:post)
-
+        it "does not attempt to verify the object" do
           subject.perform(spec, object)
         end
       end

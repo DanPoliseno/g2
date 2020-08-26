@@ -22,20 +22,16 @@ class RemoteMirrorLfsObjectUploaderWorker # rubocop:disable Scalability/Idempote
       return
     end
 
-    # TODO: we need to discover credentials in some cases. These would come from
-    #   the remote mirror's credentials
-    #
-    Gitlab::HTTP.post(
-      upload['href'],
-      body_stream: object.file,
-      headers: upload['header'],
-      format: 'application/octet-stream'
-    )
+    lfs_client.upload(object, upload)
 
-    # TODO: Now we've uploaded, verify the upload if requested
-    #
     if verify
-      logger.warn("Was asked to verify #{spec['oid']} but didn't: #{verify}")
+      lfs_client.verify(object, verify)
     end
+  end
+
+  private
+
+  def lfs_client
+    @_lfs_client ||= Gitlab::Lfs::Client.new
   end
 end
