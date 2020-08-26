@@ -1724,6 +1724,14 @@
   :weight: 2
   :idempotent:
   :tags: []
+- :name: remote_mirror_lfs_object_uploader
+  :feature_category: :source_code_management
+  :has_external_dependencies:
+  :urgency: :low
+  :resource_boundary: :unknown
+  :weight: 2
+  :idempotent:
+  :tags: []
 - :name: remote_mirror_notification
   :feature_category: :source_code_management
   :has_external_dependencies:
