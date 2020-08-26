@@ -53,7 +53,7 @@ RSpec.describe 'Project remote mirror', :feature do
         #
         stub_request(:post, "http://test.com/info/lfs/objects/batch")
           .with(
-            body: "operation=upload&transfers[]=basic&objects[][oid]=b68143e6463773b1b6c6fd009a76c32aeec041faff32ba2ed42fd7f708a00001&objects[][size]=499013",
+            body: "operation=upload&transfers[]=basic&objects[][oid]=#{lfs_object.oid}&objects[][size]=#{lfs_object.size}",
             headers: {
               'Accept'          => '*/*',
               'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
