@@ -6,7 +6,7 @@ class ContainerExpirationPolicy < ApplicationRecord
 
   belongs_to :project, inverse_of: :container_expiration_policy
 
-  delegate :container_repositories, to: :project
+  delegate :container_repositories, :container_repository_ids, to: :project
 
   validates :project, presence: true
   validates :enabled, inclusion: { in: [true, false] }
