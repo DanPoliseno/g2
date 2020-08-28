@@ -78,7 +78,22 @@ module Projects
       raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
 
       rsp['objects'].each do |spec|
-        RemoteMirrorLfsObjectUploaderWorker.perform_async(spec, objects[spec['oid']])
+        actions = spec.dig('actions')
+        upload = spec.dig('actions', 'upload')
+        object = objects[spec['oid']]
+
+        # The server already has this object, or we don't need to upload it
+        #
+        next unless actions && upload
+
+        # The server wants us to upload the object but something is wrong
+        #
+        unless object && object.size == spec['size']
+          Rails.logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object") # rubocop:disable Gitlab/RailsLogger
+          next
+        end
+
+        RemoteMirrorLfsObjectUploaderWorker.perform_async(spec, object)
       end
     end
 

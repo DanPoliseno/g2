@@ -127,5 +127,77 @@ RSpec.describe Projects::UpdateRemoteMirrorService do
         expect(remote_mirror.last_error).to include("refs/heads/develop")
       end
     end
+
+    context "sending lfs objects" do
+      let!(:lfs_object) { create(:lfs_objects_project, project: project).lfs_object }
+      let(:sample_lfs_object) { project.lfs_objects.first }
+      let(:spec) do
+        {
+          "objects" => [{
+            "oid" => sample_lfs_object.oid,
+            "size" => sample_lfs_object.size,
+            "actions" => {
+              "upload" => {
+                "href" => "https://example.com/some/file",
+                "header" => {
+                  "Key" => "value"
+                }
+              },
+              "verify" => {
+                "href" => "https://example.com/some/file/verify",
+                "header" => {
+                  "Key" => "value"
+                }
+              }
+            }
+          }]
+        }
+      end
+
+      shared_examples "returns early without attempting upload" do
+        it "returns early without attempting upload" do
+          expect(Gitlab::Lfs::Client).not_to receive(:upload)
+
+          execute!
+        end
+      end
+
+      context "object and and spec size do not match" do
+        before do
+          project.update_attribute(:lfs_enabled, true)
+          allow(Gitlab.config.lfs).to receive(:enabled).and_return(true)
+
+          spec['objects'].first['size'] = sample_lfs_object.size + 1
+
+          expect(Gitlab::HTTP).to receive(:post).and_return(spec)
+        end
+
+        it_behaves_like "returns early without attempting upload"
+
+        it "logs a warning about the size mismatch" do
+          expect(Rails.logger)
+            .to receive(:warn)
+            .with("Couldn't match #{spec['objects'].first['oid']} at size #{spec['objects'].first['size']} with an LFS object")
+
+          execute!
+        end
+      end
+
+      context "missing 'actions'" do
+        before do
+          spec['objects'].first.delete('actions')
+        end
+
+        it_behaves_like "returns early without attempting upload"
+      end
+
+      context "missing 'upload' action" do
+        before do
+          spec['objects'].first['actions'].delete('upload')
+        end
+
+        it_behaves_like "returns early without attempting upload"
+      end
+    end
   end
 end
