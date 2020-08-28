@@ -18,6 +18,7 @@ class ContainerExpirationPolicy < ApplicationRecord
 
   scope :active, -> { where(enabled: true) }
   scope :preloaded, -> { preload(project: [:route]) }
+  scope :for_project_id, -> (project_id) { where(project_id: project_id) }
 
   def self.keep_n_options
     {

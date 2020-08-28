@@ -69,10 +69,10 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
   end
 
   def max_execution_time
-    ::Gitlab::CurrentSettings.current_application_settings.container_registry_container_expiration_timeout
+    ::Gitlab::CurrentSettings.current_application_settings.container_registry_expiration_policies_timeout
   end
 
   def backoff_delay
-    ::Gitlab::CurrentSettings.current_application_settings.container_registry_container_expiration_backoff_delay
+    ::Gitlab::CurrentSettings.current_application_settings.container_registry_expiration_policies_backoff_delay
   end
 end
