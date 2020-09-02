@@ -4,11 +4,12 @@ require 'spec_helper'
 
 RSpec.describe Gitlab::Lfs::Client do
   let(:object) { create(:lfs_object) }
+  let(:base_url) { "https://example.com" }
 
   let(:upload_action) do
     {
       "upload" => {
-        "href" => "https://example.com/some/file",
+        "href" => "#{base_url}/some/file",
         "header" => {
           "Key" => "value"
         }
@@ -19,13 +20,15 @@ RSpec.describe Gitlab::Lfs::Client do
   let(:verify_action) do
     {
       "verify" => {
-        "href" => "https://example.com/some/file/verify",
+        "href" => "#{base_url}/some/file/verify",
         "header" => {
           "Key" => "value"
         }
       }
     }
   end
+
+  subject { described_class.new(base_url) }
 
   describe "#upload" do
     it "makes an HTTP post with expected parameters" do
