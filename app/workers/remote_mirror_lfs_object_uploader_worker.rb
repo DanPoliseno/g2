@@ -7,8 +7,8 @@ class RemoteMirrorLfsObjectUploaderWorker # rubocop:disable Scalability/Idempote
   weight 2
 
   def perform(remote_mirror_id, spec, object)
-    remote_mirror = RemoteMirror.find_by_id(remote_mirror_id)
-    return unless remote_mirror&.enabled?
+    @remote_mirror = RemoteMirror.find_by_id(remote_mirror_id)
+    return unless @remote_mirror&.enabled?
 
     upload = spec.dig('actions', 'upload')
     verify = spec.dig('actions', 'verify')
@@ -23,6 +23,6 @@ class RemoteMirrorLfsObjectUploaderWorker # rubocop:disable Scalability/Idempote
   private
 
   def lfs_client
-    @_lfs_client ||= Gitlab::Lfs::Client.new(remote_mirror.url)
+    @_lfs_client ||= Gitlab::Lfs::Client.new(@remote_mirror.url)
   end
 end
