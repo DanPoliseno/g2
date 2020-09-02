@@ -60,40 +60,31 @@ module Projects
       # TODO: LFS sync over SSH
       return unless remote_mirror.url =~ /\Ahttps?:\/\//i
 
-      # FIXME: do we need .git on the URL?
-      url = remote_mirror.url + "/info/lfs/objects/batch"
-      objects = project.lfs_objects.index_by(&:oid)
+      lfs_client = Gitlab::Lfs::Client.new(remote_mirror.url) # FIXME: do we need .git on the URL?
 
-      # TODO: we can use body_stream if we want to reduce overhead here
-      body = {
-        operation: 'upload',
-        transfers: ['basic'],
-        # We don't know `ref`, so can't send it
-        objects: objects.map { |oid, object| { oid: oid, size: object.size } }
-      }
+      project.lfs_objects.each_batch do |objects|
+        rsp = lfs_client.batch('upload', objects)
+        objects = objects.index_by(&:oid)
 
-      rsp = Gitlab::HTTP.post(url, format: 'application/vnd.git-lfs+json', body: body)
-      transfer = rsp.fetch('transfer', 'basic')
+        rsp['objects'].each do |spec|
+          actions = spec.dig('actions')
+          upload = spec.dig('actions', 'upload')
 
-      raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
+          # The server already has this object, or we don't need to upload it
+          #
+          next unless actions && upload
 
-      rsp['objects'].each do |spec|
-        actions = spec.dig('actions')
-        upload = spec.dig('actions', 'upload')
-        object = objects[spec['oid']]
+          object = objects[spec['oid']]
 
-        # The server already has this object, or we don't need to upload it
-        #
-        next unless actions && upload
+          # The server wants us to upload the object but something is wrong
+          #
+          unless object && object.size == spec['size']
+            Rails.logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object") # rubocop:disable Gitlab/RailsLogger
+            next
+          end
 
-        # The server wants us to upload the object but something is wrong
-        #
-        unless object && object.size == spec['size']
-          Rails.logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object") # rubocop:disable Gitlab/RailsLogger
-          next
+          RemoteMirrorLfsObjectUploaderWorker.perform_async(remote_mirror.id, spec, object)
         end
-
-        RemoteMirrorLfsObjectUploaderWorker.perform_async(spec, object)
       end
     end
 
