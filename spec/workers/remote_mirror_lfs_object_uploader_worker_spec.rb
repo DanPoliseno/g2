@@ -28,6 +28,9 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
     }
   end
 
+  let_it_be(:project) { create(:forked_project_with_submodules) }
+  let_it_be(:remote_mirror) { create(:remote_mirror, project: project, enabled: true) }
+
   describe "#perform" do
     context "upload to remote server is requested" do
       before do
@@ -37,7 +40,7 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
       end
 
       it "attempts to upload the LFS object" do
-        subject.perform(spec, object)
+        subject.perform(remote_mirror.id, spec, object)
       end
 
       context "when 'verify' action is present" do
@@ -46,7 +49,7 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
         end
 
         it "logs a warning about the lack of a verify routine" do
-          subject.perform(spec, object)
+          subject.perform(remote_mirror.id, spec, object)
         end
       end
 
@@ -58,7 +61,7 @@ RSpec.describe RemoteMirrorLfsObjectUploaderWorker do
         end
 
         it "does not attempt to verify the object" do
-          subject.perform(spec, object)
+          subject.perform(remote_mirror.id, spec, object)
         end
       end
     end
