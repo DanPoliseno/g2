@@ -22,14 +22,14 @@ module ContainerExpirationPolicies
 
     private
 
-    def enqueue_ids(container_repository_ids)
-      return if container_repository_ids.empty?
+    def enqueue_ids(selected_container_repository_ids)
+      return if selected_container_repository_ids.empty?
 
-      jids = ContainerRepository.id_in(container_repository_ids)
+      jids = ContainerRepository.id_in(selected_container_repository_ids)
                                 .find_in_batches(batch_size: batch_size) # rubocop: disable CodeReuse/ActiveRecord
                                 .with_index
-                                .map do |repositories, index|
-                                  delay = index * batch_backoff
+                                .flat_map do |repositories, index|
+                                  delay = index * batch_backoff_delay
                                   enqueue_cleanup_workers_for(repositories, delay)
                                 end
       persist_job_ids(jids)
@@ -38,18 +38,13 @@ module ContainerExpirationPolicies
     def enqueue_cleanup_workers_for(container_repositories, delay)
       return [] if container_repositories.empty?
 
-      container_repositories.map do |repository|
-        with_context( # useful?
-          project: repository.project,
-          user: repository.project.owner
-        ) do |project:, user:|
-          CleanupContainerRepositoryWorker.perform_in(
-            delay,
-            nil,
-            repository.id,
-            cleanup_worker_params_for(repository)
-          )
-        end
+      container_repositories.flat_map do |repository|
+        CleanupContainerRepositoryWorker.perform_in(
+          delay,
+          nil,
+          repository.id,
+          cleanup_worker_params_for(repository)
+        )
       end
     end
 

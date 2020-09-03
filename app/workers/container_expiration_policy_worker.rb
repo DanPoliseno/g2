@@ -34,9 +34,11 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
     end
 
     response = ContainerExpirationPolicies::ThrottledExecutionService.new(container: valid_runnable_policies)
-                                                                     .execute
 
-    self.class.perform_in(backoff_delay, @started_at, response[:remaining_container_repository_ids]) if allowed_to_reenqueue?
+    if allowed_to_reenqueue? && response[:remaining_container_repository_ids]&.any?
+      # TODO is this safe? to send remaining_container_repository_ids
+      self.class.perform_in(backoff_delay, @started_at, response[:remaining_container_repository_ids])
+    end
   end
 
   def valid_runnable_policies
