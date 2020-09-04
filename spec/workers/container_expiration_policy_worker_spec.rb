@@ -3,17 +3,24 @@
 require 'spec_helper'
 
 RSpec.describe ContainerExpirationPolicyWorker do
-  let_it_be(:worker) { described_class.new }
+  let(:worker) { described_class.new }
 
   describe '#perform' do
     subject { worker.perform }
 
-    # context 'with throttling enabled' do
-    #   before do
-    #     stub_feature_flags(container_registry_expiration_policies_throttling: true)
-    #   end
+    context 'with throttling enabled' do
+      before do
+        stub_feature_flags(container_registry_expiration_policies_throttling: true)
+      end
 
-    # end
+      context 'With no container expiration policies' do
+        it 'Does not execute any policies' do
+          expect(ContainerExpirationPolicies::ThrottledExecutionService).not_to receive(:new)
+
+          subject
+        end
+      end
+    end
 
     context 'with throttling disabled' do
       before do
@@ -76,9 +83,7 @@ RSpec.describe ContainerExpirationPolicyWorker do
           end
 
           it 'runs the policy and tracks an error' do
-            expect(ContainerExpirationPolicyService)
-              .to receive(:new).with(container_expiration_policy.project, user).and_call_original
-            expect(Gitlab::ErrorTracking).to receive(:log_exception).with(instance_of(ContainerExpirationPolicyService::InvalidPolicyError), container_expiration_policy_id: container_expiration_policy.id)
+            expect(Gitlab::ErrorTracking).to receive(:log_exception).with(instance_of(described_class::InvalidPolicyError), container_expiration_policy_id: container_expiration_policy.id)
 
             expect { subject }.to change { container_expiration_policy.reload.enabled }.from(true).to(false)
           end

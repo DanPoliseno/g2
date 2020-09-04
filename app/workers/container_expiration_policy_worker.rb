@@ -3,8 +3,11 @@
 class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWorker
   include ApplicationWorker
   include CronjobQueue
+  include Gitlab::Utils::StrongMemoize
 
   feature_category :container_registry
+
+  InvalidPolicyError = Class.new(StandardError)
 
   def perform(started_at = nil, container_repository_ids = [])
     @started_at = started_at || Time.zone.now
@@ -16,13 +19,11 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
   private
 
   def perform_unthrottled
-    ContainerExpirationPolicy.runnable_schedules.preloaded.find_each do |container_expiration_policy|
+    valid_runnable_policies.each do |container_expiration_policy|
       with_context(project: container_expiration_policy.project,
                    user: container_expiration_policy.project.owner) do |project:, user:|
         ContainerExpirationPolicyService.new(project, user)
-          .execute(container_expiration_policy)
-      rescue ContainerExpirationPolicyService::InvalidPolicyError => e
-        Gitlab::ErrorTracking.log_exception(e, container_expiration_policy_id: container_expiration_policy.id)
+                                        .execute(container_expiration_policy)
       end
     end
   end
@@ -33,7 +34,10 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
       return
     end
 
+    return unless valid_runnable_policies.any?
+
     response = ContainerExpirationPolicies::ThrottledExecutionService.new(container: valid_runnable_policies)
+                                                                     .execute
 
     if allowed_to_reenqueue? && response[:remaining_container_repository_ids]&.any?
       # TODO is this safe? to send remaining_container_repository_ids
@@ -42,18 +46,21 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
   end
 
   def valid_runnable_policies
-    policies, invalid_policies = ContainerExpirationPolicy.runnable_schedules
-                                                          .partition { |policy| policy.valid? }
+    strong_memoize(:valid_runnable_policies) do
+      policies, invalid_policies = ContainerExpirationPolicy.runnable_schedules
+                                                            .preloaded
+                                                            .partition { |policy| policy.valid? }
 
-    invalid_policies.each do |policy|
-      policy.disable!
-      Gitlab::ErrorTracking.log_exception(
-        ContainerExpirationPolicyService::InvalidPolicyError.new,
-        container_expiration_policy_id: policy.id
-      )
+      invalid_policies.each do |policy|
+        policy.disable!
+        Gitlab::ErrorTracking.log_exception(
+          ::ContainerExpirationPolicyWorker::InvalidPolicyError.new,
+          container_expiration_policy_id: policy.id
+        )
+      end
+
+      policies
     end
-
-    policies
   end
 
   def allowed_to_run?
