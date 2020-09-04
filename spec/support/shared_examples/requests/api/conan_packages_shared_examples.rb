@@ -215,7 +215,7 @@ RSpec.shared_examples 'rejects recipe for invalid project' do
     let(:recipe_path) { 'aa/bb/cc/dd' }
     let(:project_id) { 9999 }
 
-    it_behaves_like 'forbidden request'
+    it_behaves_like 'not found request'
   end
 end
 
@@ -225,11 +225,7 @@ RSpec.shared_examples 'rejects recipe for not found package' do
       'aa/bb/%{project}/ccc' % { project: ::Packages::Conan::Metadatum.package_username_from(full_path: project.full_path) }
     end
 
-    it 'returns not found' do
-      subject
-
-      expect(response).to have_gitlab_http_status(:not_found)
-    end
+    it_behaves_like 'not found request'
   end
 end
 
@@ -581,11 +577,11 @@ RSpec.shared_examples 'a private project with packages' do
   end
 end
 
-RSpec.shared_examples 'forbidden request' do
-  it 'returns forbidden' do
+RSpec.shared_examples 'not found request' do
+  it 'returns not found' do
     subject
 
-    expect(response).to have_gitlab_http_status(:forbidden)
+    expect(response).to have_gitlab_http_status(:not_found)
   end
 end
 
@@ -610,13 +606,13 @@ end
 RSpec.shared_examples 'project not found by recipe' do
   let(:recipe_path) { 'not/package/for/project' }
 
-  it_behaves_like 'forbidden request'
+  it_behaves_like 'not found request'
 end
 
 RSpec.shared_examples 'project not found by project id' do
   let(:project_id) { 99999 }
 
-  it_behaves_like 'forbidden request'
+  it_behaves_like 'not found request'
 end
 
 RSpec.shared_examples 'workhorse authorize endpoint' do

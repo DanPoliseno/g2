@@ -4,7 +4,7 @@
 module API
   class ConanProjectPackages < Grape::API::Instance
     params do
-      requires :id, type: String, desc: 'The ID of a project', regexp: %r{\A[1-9]\d*\z}
+      requires :id, type: Integer, desc: 'The ID of a project', regexp: %r{\A[1-9]\d*\z}
     end
 
     resource :projects, requirements: API::NAMESPACE_OR_PROJECT_REQUIREMENTS do
