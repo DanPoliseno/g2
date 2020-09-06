@@ -210,6 +210,27 @@ RSpec.describe ObjectStorage do
         end
       end
 
+      describe '#use_open_file' do
+        context 'when file is stored locally' do
+          it "returns the file" do
+            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(Tempfile))
+          end
+        end
+
+        context 'when file is stored remotely' do
+          let(:store) { described_class::Store::REMOTE }
+
+          before do
+            stub_artifacts_object_storage
+            stub_request(:get, %r{s3.amazonaws.com/#{uploader.path}}).to_return(status: 200, body: '')
+          end
+
+          it "returns the file" do
+            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(Tempfile))
+          end
+        end
+      end
+
       describe '#migrate!' do
         subject { uploader.migrate!(new_store) }
 

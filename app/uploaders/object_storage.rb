@@ -249,6 +249,25 @@ module ObjectStorage
       end
     end
 
+    def use_open_file(&blk)
+      if file_storage?
+        return Tempfile.open(path) { |file| yield file }
+      end
+
+      Tempfile.open(path) do |file|
+        file.binmode
+        Faraday.new do |conn|
+          conn.adapter(:net_http)
+          response = conn.get(url)
+          file.write(response.body)
+        end
+
+        file.rewind
+
+        yield file
+      end
+    end
+
     #
     # Move the file to another store
     #
