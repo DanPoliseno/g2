@@ -88,5 +88,58 @@ RSpec.describe SessionsController, :geo do
         end
       end
     end
+
+    context 'when using two-factor authentication' do
+      let(:audit_event_service) { instance_spy(AuditEventService) }
+
+      def authenticate_2fa(user_params, otp_user_id: user.id)
+        post(:create, params: { user: user_params }, session: { otp_user_id: otp_user_id })
+      end
+
+      before do
+        allow(AuditEventService).to receive(:new).and_return(audit_event_service)
+      end
+
+      context 'when OTP is invalid' do
+        let(:user) { create(:user, :two_factor) }
+
+        it 'log an audit event', :aggregate_failures do
+          authenticate_2fa(otp_attempt: 'invalid', otp_user_id: user.id)
+
+          expect(AuditEventService).to have_received(:new).with(user, user, ip_address: '0.0.0.0', with: 'OTP')
+          expect(audit_event_service).to have_received(:for_failed_login)
+          expect(audit_event_service).to have_received(:unauth_security_event)
+        end
+      end
+
+      context 'when U2F is invalid' do
+        let(:user) { create(:user, :two_factor_via_u2f) }
+
+        it 'log an audit event', :aggregate_failures do
+          allow(U2fRegistration).to receive(:authenticate).and_return(false)
+          authenticate_2fa(device_response: 'invalid', otp_user_id: user.id)
+
+          expect(AuditEventService).to have_received(:new).with(user, user, ip_address: '0.0.0.0', with: 'U2F')
+          expect(audit_event_service).to have_received(:for_failed_login)
+          expect(audit_event_service).to have_received(:unauth_security_event)
+        end
+      end
+
+      context 'when WebAuthn is invalid' do
+        let(:user) { create(:user, :two_factor_via_webauthn) }
+
+        it 'log an audit event', :aggregate_failures do
+          stub_feature_flags(webauthn: true)
+          webauthn_authenticate_service = instance_spy(Webauthn::AuthenticateService, execute: false)
+          allow(Webauthn::AuthenticateService).to receive(:new).and_return(webauthn_authenticate_service)
+
+          authenticate_2fa(device_response: 'invalid', otp_user_id: user.id)
+
+          expect(AuditEventService).to have_received(:new).with(user, user, ip_address: '0.0.0.0', with: 'WebAuthn')
+          expect(audit_event_service).to have_received(:for_failed_login)
+          expect(audit_event_service).to have_received(:unauth_security_event)
+        end
+      end
+    end
   end
 end
