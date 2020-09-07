@@ -14,7 +14,7 @@ RSpec.describe 'User activates Jira', :js do
 
         visit_project_integration('Jira')
         fill_form
-        click_save_integration
+        click_test_then_save_integration(expect_test_to_fail: false)
       end
 
       it 'activates the Jira service' do

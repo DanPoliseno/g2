@@ -26,9 +26,9 @@ RSpec.describe 'User activates issue tracker', :js do
           fill_form(skip_new_issue_url: skip_new_issue_url)
 
           if skip_test
-            click_button('Save changes')
+            click_save_integration
           else
-            click_test_integration
+            click_test_then_save_integration(expect_test_to_fail: false)
           end
         end
 

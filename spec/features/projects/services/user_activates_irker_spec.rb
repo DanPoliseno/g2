@@ -10,7 +10,7 @@ RSpec.describe 'User activates Irker (IRC gateway)' do
     check('Colorize messages')
     fill_in('Recipients', with: 'irc://chat.freenode.net/#commits')
 
-    click_test_integration
+    click_test_then_save_integration(expect_test_to_fail: false)
 
     expect(page).to have_content('Irker (IRC gateway) settings saved and active.')
   end
