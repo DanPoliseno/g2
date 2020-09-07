@@ -81,9 +81,13 @@ export default class IntegrationSettingsForm {
       .put(this.testEndPoint, formData)
       .then(({ data }) => {
         if (data.error) {
-          this.vue.$toast.show(`${data.message} ${data.service_response}`);
+          this.vue.$toast.show(`${data.message} ${data.service_response}`, {
+            type: 'error',
+          });
         } else {
-          this.vue.$toast.show(s__('Integrations|Connection successful.'));
+          this.vue.$toast.show(s__('Integrations|Connection successful.'), {
+            type: 'success',
+          });
         }
         this.vue.$store.dispatch('setIsTesting', false);
       })

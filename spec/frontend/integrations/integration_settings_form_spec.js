@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import MockAdaptor from 'axios-mock-adapter';
 import axios from '~/lib/utils/axios_utils';
 import IntegrationSettingsForm from '~/integrations/integration_settings_form';
@@ -57,13 +56,18 @@ describe('IntegrationSettingsForm', () => {
     let integrationSettingsForm;
     let formData;
     let mock;
+    let testSpy;
 
     beforeEach(() => {
       mock = new MockAdaptor(axios);
 
       jest.spyOn(axios, 'put');
+      testSpy = jest.fn();
 
       integrationSettingsForm = new IntegrationSettingsForm('.js-integration-settings-form');
+      integrationSettingsForm.init();
+      integrationSettingsForm.vue.$toast = { show: testSpy };
+
       // eslint-disable-next-line no-jquery/no-serialize
       formData = integrationSettingsForm.$form.serialize();
     });
@@ -72,128 +76,60 @@ describe('IntegrationSettingsForm', () => {
       mock.restore();
     });
 
-    it('should make an ajax request with provided `formData`', () => {
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        expect(axios.put).toHaveBeenCalledWith(integrationSettingsForm.testEndPoint, formData);
-      });
+    it('should make an ajax request with provided `formData`', async () => {
+      await integrationSettingsForm.testSettings(formData);
+
+      expect(axios.put).toHaveBeenCalledWith(integrationSettingsForm.testEndPoint, formData);
     });
 
-    it('should show error Flash with `Save anyway` action if ajax request responds with error in test', () => {
-      const errorMessage = 'Test failed.';
-      mock.onPut(integrationSettingsForm.testEndPoint).reply(200, {
-        error: true,
-        message: errorMessage,
-        service_response: 'some error',
-        test_failed: true,
-      });
-
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        const $flashContainer = $('.flash-container');
-
-        expect(
-          $flashContainer
-            .find('.flash-text')
-            .text()
-            .trim(),
-        ).toEqual('Test failed. some error');
-
-        expect($flashContainer.find('.flash-action')).toBeDefined();
-        expect(
-          $flashContainer
-            .find('.flash-action')
-            .text()
-            .trim(),
-        ).toEqual('Save anyway');
-      });
-    });
-
-    it('should not show error Flash with `Save anyway` action if ajax request responds with error in validation', () => {
-      const errorMessage = 'Validations failed.';
-      mock.onPut(integrationSettingsForm.testEndPoint).reply(200, {
-        error: true,
-        message: errorMessage,
-        service_response: 'some error',
-        test_failed: false,
-      });
-
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        const $flashContainer = $('.flash-container');
-
-        expect(
-          $flashContainer
-            .find('.flash-text')
-            .text()
-            .trim(),
-        ).toEqual('Validations failed. some error');
-
-        expect($flashContainer.find('.flash-action')).toBeDefined();
-        expect(
-          $flashContainer
-            .find('.flash-action')
-            .text()
-            .trim(),
-        ).toEqual('');
-      });
-    });
-
-    it('should submit form if ajax request responds without any error in test', () => {
+    it('should show success message if test is successful', async () => {
       jest.spyOn(integrationSettingsForm.$form, 'submit').mockImplementation(() => {});
 
       mock.onPut(integrationSettingsForm.testEndPoint).reply(200, {
         error: false,
       });
 
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        expect(integrationSettingsForm.$form.submit).toHaveBeenCalled();
-      });
+      await integrationSettingsForm.testSettings(formData);
+
+      expect(testSpy).toHaveBeenCalledWith('Connection successful.', { type: 'success' });
     });
 
-    it('should submit form when clicked on `Save anyway` action of error Flash', () => {
-      jest.spyOn(integrationSettingsForm.$form, 'submit').mockImplementation(() => {});
-
+    it('should show error message if ajax request responds with test error', async () => {
       const errorMessage = 'Test failed.';
+      const serviceResponse = 'some error';
+
       mock.onPut(integrationSettingsForm.testEndPoint).reply(200, {
         error: true,
         message: errorMessage,
-        test_failed: true,
+        service_response: serviceResponse,
+        test_failed: false,
       });
 
-      return integrationSettingsForm
-        .testSettings(formData)
-        .then(() => {
-          const $flashAction = $('.flash-container .flash-action');
+      await integrationSettingsForm.testSettings(formData);
 
-          expect($flashAction).toBeDefined();
-
-          $flashAction.get(0).click();
-        })
-        .then(() => {
-          expect(integrationSettingsForm.$form.submit).toHaveBeenCalled();
-        });
+      expect(testSpy).toHaveBeenCalledWith(`${errorMessage} ${serviceResponse}`, { type: 'error' });
     });
 
-    it('should show error Flash if ajax request failed', () => {
+    it('should show error message if ajax request failed', async () => {
       const errorMessage = 'Something went wrong on our end.';
 
       mock.onPut(integrationSettingsForm.testEndPoint).networkError();
 
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        expect(
-          $('.flash-container .flash-text')
-            .text()
-            .trim(),
-        ).toEqual(errorMessage);
-      });
+      await integrationSettingsForm.testSettings(formData);
+
+      expect(testSpy).toHaveBeenCalledWith(errorMessage, { type: 'error' });
     });
 
-    it('should always call `toggleSubmitBtnState` with `false` once request is completed', () => {
+    it('should always dispatch `setIsTesting` with `false` once request is completed', async () => {
+      const dispatchSpy = jest.fn();
+
       mock.onPut(integrationSettingsForm.testEndPoint).networkError();
 
-      jest.spyOn(integrationSettingsForm, 'toggleSubmitBtnState').mockImplementation(() => {});
+      integrationSettingsForm.vue.$store = { dispatch: dispatchSpy };
 
-      return integrationSettingsForm.testSettings(formData).then(() => {
-        expect(integrationSettingsForm.toggleSubmitBtnState).toHaveBeenCalledWith(false);
-      });
+      await integrationSettingsForm.testSettings(formData);
+
+      expect(dispatchSpy).toHaveBeenCalledWith('setIsTesting', false);
     });
   });
 });
