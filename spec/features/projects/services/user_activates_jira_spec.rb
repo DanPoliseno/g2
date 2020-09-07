@@ -14,11 +14,11 @@ RSpec.describe 'User activates Jira', :js do
 
         visit_project_integration('Jira')
         fill_form
-        click_test_integration
+        click_save_integration
       end
 
       it 'activates the Jira service' do
-        expect(page).to have_content('Jira activated.')
+        expect(page).to have_content('Jira settings saved and active.')
         expect(current_path).to eq(edit_project_service_path(project, :jira))
       end
 
@@ -54,7 +54,7 @@ RSpec.describe 'User activates Jira', :js do
         fill_form
         click_test_then_save_integration
 
-        expect(page).to have_content('Jira activated.')
+        expect(page).to have_content('Jira settings saved and active.')
         expect(current_path).to eq(edit_project_service_path(project, :jira))
       end
     end
@@ -71,7 +71,7 @@ RSpec.describe 'User activates Jira', :js do
     end
 
     it 'saves but does not activate the Jira service' do
-      expect(page).to have_content('Jira settings saved, but not activated.')
+      expect(page).to have_content('Jira settings saved, but not active.')
       expect(current_path).to eq(edit_project_service_path(project, :jira))
     end
 

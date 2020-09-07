@@ -1,7 +1,6 @@
 import $ from 'jquery';
 import axios from '../lib/utils/axios_utils';
-import { deprecatedCreateFlash as flash } from '../flash';
-import { __ } from '~/locale';
+import { __, s__ } from '~/locale';
 import initForm from './edit';
 import eventHub from './edit/event_hub';
 
@@ -29,6 +28,23 @@ export default class IntegrationSettingsForm {
     eventHub.$on('testIntegration', () => {
       this.testIntegration();
     });
+    eventHub.$on('saveIntegration', () => {
+      this.saveIntegration();
+    });
+  }
+
+  saveIntegration() {
+    // Service was marked active so now we check;
+    // 1) If form contents are valid
+    // 2) If this service can be saved
+    // If both conditions are true, we override form submission
+    // and save the service using provided configuration.
+    if (this.$form.get(0).checkValidity()) {
+      this.$form.submit();
+    } else {
+      eventHub.$emit('validateForm');
+      this.vue.$store.dispatch('setIsSaving', false);
+    }
   }
 
   testIntegration() {
@@ -65,21 +81,9 @@ export default class IntegrationSettingsForm {
       .put(this.testEndPoint, formData)
       .then(({ data }) => {
         if (data.error) {
-          let flashActions;
-
-          if (data.test_failed) {
-            flashActions = {
-              title: __('Save anyway'),
-              clickHandler: e => {
-                e.preventDefault();
-                this.$form.submit();
-              },
-            };
-          }
-
-          flash(`${data.message} ${data.service_response}`, 'alert', document, flashActions);
+          this.vue.$toast.show(`${data.message} ${data.service_response}`);
         } else {
-          this.vue.$toast.show(__('Test successful!'));
+          this.vue.$toast.show(s__('Integrations|Connection successful.'));
         }
         this.vue.$store.dispatch('setIsTesting', false);
       })

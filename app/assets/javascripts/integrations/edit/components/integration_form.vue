@@ -1,7 +1,7 @@
 <script>
 import { mapState, mapActions, mapGetters } from 'vuex';
-import glFeatureFlagsMixin from '~/vue_shared/mixins/gl_feature_flags_mixin';
 import { GlButton, GlLoadingIcon } from '@gitlab/ui';
+import glFeatureFlagsMixin from '~/vue_shared/mixins/gl_feature_flags_mixin';
 import eventHub from '../event_hub';
 
 import OverrideDropdown from './override_dropdown.vue';
@@ -41,6 +41,7 @@ export default {
     ...mapActions(['setOverride', 'setIsSaving', 'setIsTesting']),
     onSaveClick() {
       this.setIsSaving(true);
+      eventHub.$emit('saveIntegration');
     },
     onTestClick() {
       this.setIsTesting(true);
@@ -88,7 +89,7 @@ export default {
         type="submit"
         :disabled="isSavingOrTesting"
         data-qa-selector="save_changes_button"
-        @click="onSaveClick"
+        @click.prevent="onSaveClick"
       >
         <gl-loading-icon v-show="isSaving" inline color="dark" />
         {{ __('Save changes') }}

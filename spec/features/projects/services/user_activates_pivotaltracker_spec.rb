@@ -15,6 +15,6 @@ RSpec.describe 'User activates PivotalTracker' do
 
     click_test_integration
 
-    expect(page).to have_content('PivotalTracker activated.')
+    expect(page).to have_content('PivotalTracker settings saved and active.')
   end
 end

@@ -1,7 +1,7 @@
 import Vue from 'vue';
+import { GlToast } from '@gitlab/ui';
 import { createStore } from './store';
 import { parseBoolean } from '~/lib/utils/common_utils';
-import { GlToast } from '@gitlab/ui';
 import IntegrationForm from './components/integration_form.vue';
 
 Vue.use(GlToast);

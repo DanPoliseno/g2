@@ -12,6 +12,6 @@ RSpec.describe 'User activates Irker (IRC gateway)' do
 
     click_test_integration
 
-    expect(page).to have_content('Irker (IRC gateway) activated.')
+    expect(page).to have_content('Irker (IRC gateway) settings saved and active.')
   end
 end

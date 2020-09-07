@@ -15,6 +15,6 @@ RSpec.describe 'User activates Assembla' do
 
     click_test_integration
 
-    expect(page).to have_content('Assembla activated.')
+    expect(page).to have_content('Assembla settings saved and active.')
   end
 end

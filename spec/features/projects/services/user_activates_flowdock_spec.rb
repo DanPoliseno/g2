@@ -17,6 +17,6 @@ RSpec.describe 'User activates Flowdock' do
 
     click_test_integration
 
-    expect(page).to have_content('Flowdock activated.')
+    expect(page).to have_content('Flowdock settings saved and active.')
   end
 end

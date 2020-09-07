@@ -17,7 +17,7 @@ RSpec.describe 'User activates HipChat', :js do
 
       click_test_integration
 
-      expect(page).to have_content('HipChat activated.')
+      expect(page).to have_content('HipChat settings saved and active.')
     end
   end
 
@@ -34,7 +34,7 @@ RSpec.describe 'User activates HipChat', :js do
 
       click_test_integration
 
-      expect(page).to have_content('HipChat activated.')
+      expect(page).to have_content('HipChat settings saved and active.')
     end
   end
 end

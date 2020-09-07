@@ -19,6 +19,6 @@ RSpec.describe 'User activates Pushover' do
 
     click_test_integration
 
-    expect(page).to have_content('Pushover activated.')
+    expect(page).to have_content('Pushover settings saved and active.')
   end
 end

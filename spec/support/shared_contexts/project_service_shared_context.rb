@@ -23,7 +23,7 @@ RSpec.shared_context 'project service activation' do
   end
 
   def click_save_integration
-    click_link('Save changes')
+    click_button('Save changes')
   end
 
   def click_test_integration
@@ -33,8 +33,8 @@ RSpec.shared_context 'project service activation' do
   def click_test_then_save_integration
     click_test_integration
 
-    expect(page).to have_content('Test failed.')
+    expect(page).to have_content('Connection failed.')
 
-    click_link('Save anyway')
+    click_save_integration
   end
 end

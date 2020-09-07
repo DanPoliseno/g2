@@ -20,6 +20,6 @@ RSpec.describe 'User activates JetBrains TeamCity CI' do
 
     click_test_integration
 
-    expect(page).to have_content('JetBrains TeamCity CI activated.')
+    expect(page).to have_content('JetBrains TeamCity CI settings saved and active.')
   end
 end

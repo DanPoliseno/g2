@@ -11,6 +11,6 @@ RSpec.describe 'User activates Emails on push' do
 
     click_test_integration
 
-    expect(page).to have_content('Emails on push activated.')
+    expect(page).to have_content('Emails on push settings saved and active.')
   end
 end
