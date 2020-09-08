@@ -34,7 +34,15 @@ module DesignManagement
       ::DesignManagement::Version.with_lock(project.id, repository) do
         actions = build_actions
 
-        [actions.map(&:design), actions.presence && run_actions(actions)]
+        [
+          actions.map(&:design),
+          actions.presence && run_actions(
+            actions,
+            repository: repository,
+            target_branch: target_branch,
+            commit_message: commit_message
+          )
+        ]
       end
     end
 

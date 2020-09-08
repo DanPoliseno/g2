@@ -32,7 +32,7 @@ RSpec.describe DesignManagement::SaveDesignsService do
     end
 
     allow(::DesignManagement::NewVersionWorker)
-      .to receive(:perform_async).with(Integer).and_return(nil)
+      .to receive(:perform_async).with(Integer, false).and_return(nil)
   end
 
   def run_service(files_to_upload = nil)
@@ -220,7 +220,7 @@ RSpec.describe DesignManagement::SaveDesignsService do
           counter = Gitlab::UsageDataCounters::DesignsCounter
 
           expect(::DesignManagement::NewVersionWorker)
-            .to receive(:perform_async).once.with(Integer).and_return(nil)
+            .to receive(:perform_async).once.with(Integer, false).and_return(nil)
 
           expect { run_service }
             .to change { Event.count }.by(2)
@@ -254,7 +254,7 @@ RSpec.describe DesignManagement::SaveDesignsService do
           design_repository.has_visible_content?
 
           expect(::DesignManagement::NewVersionWorker)
-            .to receive(:perform_async).once.with(Integer).and_return(nil)
+            .to receive(:perform_async).once.with(Integer, false).and_return(nil)
 
           expect { service.execute }
             .to change { issue.designs.count }.from(0).to(2)
