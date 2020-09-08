@@ -23,6 +23,6 @@ class RemoteMirrorLfsObjectUploaderWorker # rubocop:disable Scalability/Idempote
   private
 
   def lfs_client
-    @_lfs_client ||= Gitlab::Lfs::Client.new(@remote_mirror.url)
+    @_lfs_client ||= Gitlab::Lfs::Client.new(@remote_mirror.bare_url, credentials: @remote_mirror.credentials)
   end
 end

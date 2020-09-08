@@ -31,6 +31,9 @@ module Projects
       remote_mirror.update_start!
       remote_mirror.ensure_remote!
 
+      # LFS objects must be sent first, or the push has dangling pointers
+      send_lfs_objects!(remote_mirror)
+
       response = remote_mirror.update_repository
 
       if response.divergent_refs.any?
@@ -40,8 +43,6 @@ module Projects
         remote_mirror.mark_as_failed!(message)
         return
       end
-
-      send_lfs_objects!(remote_mirror)
 
       remote_mirror.update_finish!
     end
@@ -59,11 +60,15 @@ module Projects
 
       # TODO: LFS sync over SSH
       return unless remote_mirror.url =~ /\Ahttps?:\/\//i
+      return unless remote_mirror.password_auth?
 
-      lfs_client = Gitlab::Lfs::Client.new(remote_mirror.url) # FIXME: do we need .git on the URL?
+      lfs_client = Gitlab::Lfs::Client.new(
+        remote_mirror.bare_url, # FIXME: do we need .git on the URL?
+        credentials: remote_mirror.credentials
+      )
 
       project.lfs_objects.each_batch do |objects|
-        rsp = lfs_client.batch('upload', objects)
+        rsp = Gitlab::JSON.parse(lfs_client.batch('upload', objects))
         objects = objects.index_by(&:oid)
 
         rsp['objects'].each do |spec|
@@ -78,12 +83,12 @@ module Projects
 
           # The server wants us to upload the object but something is wrong
           #
-          unless object && object.size == spec['size']
+          unless object && object.size == spec['size'].to_i
             Rails.logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object") # rubocop:disable Gitlab/RailsLogger
             next
           end
 
-          RemoteMirrorLfsObjectUploaderWorker.perform_async(remote_mirror.id, spec, object)
+          RemoteMirrorLfsObjectUploaderWorker.new.perform(remote_mirror.id, spec, object)
         end
       end
     end
