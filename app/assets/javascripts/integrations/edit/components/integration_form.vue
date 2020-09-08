@@ -1,6 +1,6 @@
 <script>
 import { mapState, mapActions, mapGetters } from 'vuex';
-import { GlButton, GlLoadingIcon } from '@gitlab/ui';
+import { GlButton } from '@gitlab/ui';
 import glFeatureFlagsMixin from '~/vue_shared/mixins/gl_feature_flags_mixin';
 import eventHub from '../event_hub';
 
@@ -21,7 +21,6 @@ export default {
     TriggerFields,
     DynamicField,
     GlButton,
-    GlLoadingIcon,
   },
   mixins: [glFeatureFlagsMixin()],
   computed: {
@@ -87,20 +86,20 @@ export default {
         category="primary"
         variant="success"
         type="submit"
+        :loading="isSaving"
         :disabled="isSavingOrTesting"
         data-qa-selector="save_changes_button"
         @click.prevent="onSaveClick"
       >
-        <gl-loading-icon v-show="isSaving" inline color="dark" />
         {{ __('Save changes') }}
       </gl-button>
       <gl-button
         v-if="propsSource.canTest"
+        :loading="isTesting"
         :disabled="isSavingOrTesting"
         :href="propsSource.testPath"
         @click.prevent="onTestClick"
       >
-        <gl-loading-icon v-show="isTesting" inline color="dark" />
         {{ __('Test settings') }}
       </gl-button>
 
