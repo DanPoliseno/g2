@@ -237,7 +237,6 @@ module Ci
       end
 
       after_transition any => ::Ci::Pipeline.completed_statuses do |pipeline|
-        next unless pipeline.bridge_triggered?
         next unless pipeline.bridge_waiting?
 
         pipeline.run_after_commit do
@@ -1068,6 +1067,10 @@ module Ci
       ::Gitlab::Ci::PipelineObjectHierarchy
         .new(self.class.unscoped.where(id: id))
         .base_and_ancestors
+    end
+
+    def retry_bridge!
+      source_bridge.pending! if bridge_waiting?
     end
 
     private
