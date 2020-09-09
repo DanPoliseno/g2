@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
-class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentWorker
+class CleanupContainerRepositoryWorker
   include ApplicationWorker
 
   queue_namespace :container_repository
   feature_category :container_registry
+  urgency :low
+  worker_resource_boundary :unknown
+  idempotent!
   loggable_arguments 2
+
+  deduplicate :until_executing, including_scheduled: true
 
   attr_reader :container_repository, :current_user
 
@@ -27,6 +32,9 @@ class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentW
     if run_by_container_expiration_policy? && result[:status] == :success
       container_repository.reset_expiration_policy_started_at!
     end
+
+  ensure
+    remove_from_redis
   end
 
   private
@@ -38,7 +46,7 @@ class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentW
   end
 
   def run_by_container_expiration_policy?
-    @params['container_expiration_policy'] && container_repository.present? && project.present?
+    container_expiration_policy && container_repository.present? && project.present?
   end
 
   def params_from_container_expiration_policy
@@ -47,7 +55,28 @@ class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentW
     project.container_expiration_policy.attributes.except('created_at', 'updated_at')
   end
 
+  def remove_from_redis
+    return unless throttling_enabled? && jids_redis_key.present?
+
+    # Remove jid from array stored in jids_redis_key
+    Sidekiq.redis do |redis|
+      redis.srem(jids_redis_key, jid)
+    end
+  end
+
+  def throttling_enabled?
+    Feature.enabled?(:container_registry_expiration_policies_throttling)
+  end
+
   def project
     container_repository&.project
+  end
+
+  def container_expiration_policy
+    @params['container_expiration_policy']
+  end
+
+  def jids_redis_key
+    @params['jids_redis_key']
   end
 end
