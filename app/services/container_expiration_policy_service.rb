@@ -8,9 +8,7 @@ class ContainerExpirationPolicyService < BaseService
       CleanupContainerRepositoryWorker.perform_async(
         nil,
         container_repository.id,
-        container_expiration_policy.attributes
-          .except('created_at', 'updated_at')
-          .merge(container_expiration_policy: true)
+        container_expiration_policy: true
       )
     end
   end

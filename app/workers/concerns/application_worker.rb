@@ -110,7 +110,7 @@ module ApplicationWorker
       end
 
       if batch_size && batch_delay
-        args_list.each_slice(batch_size.to_i).with_index do |args_batch, idx|
+        args_list.each_slice(batch_size.to_i).with_index.flat_map do |args_batch, idx|
           batch_schedule = schedule + idx * batch_delay.to_i
           Sidekiq::Client.push_bulk('class' => self, 'args' => args_batch, 'at' => batch_schedule)
         end

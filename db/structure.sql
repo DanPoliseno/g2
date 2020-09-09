@@ -9252,7 +9252,7 @@ CREATE TABLE public.application_settings (
     enforce_namespace_storage_limit boolean DEFAULT false NOT NULL,
     container_registry_expiration_policies_timeout integer DEFAULT 1800 NOT NULL,
     container_registry_expiration_policies_backoff_delay integer DEFAULT 25 NOT NULL,
-    container_registry_expiration_policies_max_slots integer DEFAULT 100 NOT NULL,
+    container_registry_expiration_policies_capacity integer DEFAULT 100 NOT NULL,
     container_registry_expiration_policies_batch_size integer DEFAULT 10 NOT NULL,
     container_registry_expiration_policies_batch_backoff_delay integer DEFAULT 25 NOT NULL,
     CONSTRAINT check_51700b31b5 CHECK ((char_length(default_branch_name) <= 255)),
@@ -10964,7 +10964,8 @@ CREATE TABLE public.container_repositories (
     name character varying NOT NULL,
     created_at timestamp without time zone NOT NULL,
     updated_at timestamp without time zone NOT NULL,
-    status smallint
+    status smallint,
+    expiration_policy_started_at timestamp with time zone
 );
 
 CREATE SEQUENCE public.container_repositories_id_seq

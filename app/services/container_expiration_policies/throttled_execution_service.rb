@@ -1,82 +1,59 @@
 # frozen_string_literal: true
 
 module ContainerExpirationPolicies
-  class ThrottledExecutionService < BaseContainerService
+  class ThrottledExecutionService
+    include BaseServiceUtility
     include Gitlab::Utils::StrongMemoize
 
-    alias_method :runnable_policy_ids, :container
-
+    DELAY = 30.seconds.freeze
     REDIS_KEY = 'container_expiration_policy_execution_service_jids'
 
     def execute
-      return error('Feature flag disabled') unless throttling_enabled?
+      update_redis_entry
 
-      schedule_next_runs
+      enqueue_ids(container_repository_ids(available_capacity))
 
-      remaining_ids = container_repository_ids
-
-      enqueue_ids(remaining_ids.shift(available_slots))
-
-      success(remaining_container_repository_ids: remaining_ids)
+      success
     end
 
     private
 
-    def enqueue_ids(selected_container_repository_ids)
-      return if selected_container_repository_ids.empty?
+    def enqueue_ids(repository_ids)
+      return if repository_ids.empty?
 
-      jids = ContainerRepository.id_in(selected_container_repository_ids)
-                                .find_in_batches(batch_size: batch_size) # rubocop: disable CodeReuse/ActiveRecord
-                                .with_index
-                                .flat_map do |repositories, index|
-                                  delay = index * batch_backoff_delay
-                                  enqueue_cleanup_workers_for(repositories, delay)
-                                end
+      job_args = repository_ids.map do |repository_id|
+        [
+          nil,
+          repository_id,
+          container_expiration_policy: true,
+          jids_redis_key: REDIS_KEY
+        ]
+      end
+
+      # bulk_perform_in_with_contexts doesn't support batch_size and batch_delay
+      # also, the only context we have here is the container repository id
+      # rubocop: disable Scalability/BulkPerformWithContext
+      jids = CleanupContainerRepositoryWorker.bulk_perform_in(
+        DELAY,
+        job_args,
+        batch_size: batch_size,
+        batch_delay: batch_backoff_delay
+      )
+      # rubocop: enable Scalability/BulkPerformWithContext
       persist_job_ids(jids)
     end
 
-    def enqueue_cleanup_workers_for(container_repositories, delay)
-      return [] if container_repositories.empty?
-
-      container_repositories.flat_map do |repository|
-        CleanupContainerRepositoryWorker.perform_in(
-          delay,
-          nil,
-          repository.id,
-          cleanup_worker_params_for(repository)
-        )
-      end
-    end
-
-    def cleanup_worker_params_for(repository)
-      repository.container_expiration_policy
-                .attributes
-                .except('created_at', 'updated_at')
-                .merge(
-                  'container_expiration_policy' => true,
-                  'jids_redis_key' => REDIS_KEY
-                )
-    end
-
-    def container_repository_ids
-      ContainerRepository.for_project(runnable_policies.select(:project_id))
+    def container_repository_ids(size)
+      ContainerRepository.with_expiration_policy_started
                          .pluck_primary_key
-                         .shuffle # Useful? This is to not have all container repository ids of the single same project.
+                         .sample(size)
     end
 
-    def runnable_policies
-      strong_memoize(:runnable_policies) do
-        ContainerExpirationPolicy.for_project_id(runnable_policy_ids)
-      end
+    def available_capacity
+      capacity - job_ids_count
     end
 
-    def available_slots
-      update_cache
-
-      max_slots - job_ids_count
-    end
-
-    def update_cache
+    def update_redis_entry
       Sidekiq.redis do |redis|
         completed_jids = Gitlab::SidekiqStatus.completed_jids(job_ids)
         redis.srem(REDIS_KEY, completed_jids) if completed_jids.any?
@@ -97,12 +74,8 @@ module ContainerExpirationPolicies
       Sidekiq.redis { |r| r.sadd(REDIS_KEY, job_ids) }
     end
 
-    def schedule_next_runs
-      runnable_policies.each(&:schedule_next_run!)
-    end
-
-    def max_slots
-      ::Gitlab::CurrentSettings.current_application_settings.container_registry_expiration_policies_max_slots
+    def capacity
+      ::Gitlab::CurrentSettings.current_application_settings.container_registry_expiration_policies_capacity
     end
 
     def batch_size
@@ -111,10 +84,6 @@ module ContainerExpirationPolicies
 
     def batch_backoff_delay
       ::Gitlab::CurrentSettings.current_application_settings.container_registry_expiration_policies_batch_backoff_delay
-    end
-
-    def throttling_enabled?
-      Feature.enabled?(:container_registry_expiration_policies_throttling)
     end
   end
 end

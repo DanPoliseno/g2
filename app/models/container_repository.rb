@@ -3,6 +3,7 @@
 class ContainerRepository < ApplicationRecord
   include Gitlab::Utils::StrongMemoize
   include Gitlab::SQL::Pattern
+  include EachBatch
 
   belongs_to :project
 
@@ -12,7 +13,6 @@ class ContainerRepository < ApplicationRecord
   enum status: { delete_scheduled: 0, delete_failed: 1 }
 
   delegate :client, to: :registry
-  delegate :container_expiration_policy, to: :project
 
   scope :ordered, -> { order(:name) }
   scope :with_api_entity_associations, -> { preload(project: [:route, { namespace: :route }]) }
@@ -26,6 +26,7 @@ class ContainerRepository < ApplicationRecord
       .joins("INNER JOIN (#{project_scope.to_sql}) projects on projects.id=container_repositories.project_id")
   end
   scope :for_project, ->(project_id) { where(project_id: project_id) }
+  scope :with_expiration_policy_started, -> { where.not(expiration_policy_started_at: nil) }
   scope :search_by_name, ->(query) { fuzzy_search(query, [:name], use_minimum_char_limit: false) }
 
   def self.exists_by_path?(path)

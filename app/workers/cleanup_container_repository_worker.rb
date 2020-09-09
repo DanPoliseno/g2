@@ -16,9 +16,15 @@ class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentW
 
     return unless valid?
 
-    Projects::ContainerRepository::CleanupTagsService
-      .new(project, current_user, params)
-      .execute(container_repository)
+    if run_by_container_expiration_policy?
+      params.merge!(params_from_container_expiration_policy)
+    end
+
+    with_context(project: project) do |project:|
+      Projects::ContainerRepository::CleanupTagsService
+        .new(project, current_user, params)
+        .execute(container_repository)
+    end
   end
 
   private
@@ -31,6 +37,12 @@ class CleanupContainerRepositoryWorker # rubocop:disable Scalability/IdempotentW
 
   def run_by_container_expiration_policy?
     @params['container_expiration_policy'] && container_repository && project
+  end
+
+  def params_from_container_expiration_policy
+    return {} unless project.container_expiration_policy
+
+    project.container_expiration_policy.attributes.except('created_at', 'updated_at')
   end
 
   def project

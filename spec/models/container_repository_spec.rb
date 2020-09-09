@@ -325,4 +325,12 @@ RSpec.describe ContainerRepository do
 
     it { is_expected.to contain_exactly(repository) }
   end
+
+  describe '.with_expiration_policy_started' do
+    let_it_be(:repository_with_expiration_policy_started) { create(:container_repository, :with_expiration_policy_started) }
+
+    subject { described_class.with_expiration_policy_started }
+
+    it { is_expected.to contain_exactly(repository_with_expiration_policy_started) }
+  end
 end

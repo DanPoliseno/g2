@@ -9,17 +9,19 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
 
   InvalidPolicyError = Class.new(StandardError)
 
-  def perform(started_at = nil, container_repository_ids = [])
-    @started_at = started_at || Time.zone.now
-    @container_repository_ids = container_repository_ids
-
-    throttling_enabled? ? perform_throttled : perform_unthrottled
+  def perform(started_at = nil)
+    if throttling_enabled?
+      @started_at = started_at
+      perform_throttled
+    else
+      perform_unthrottled
+    end
   end
 
   private
 
   def perform_unthrottled
-    valid_runnable_policies.each do |container_expiration_policy|
+    runnable_policies.each do |container_expiration_policy|
       with_context(project: container_expiration_policy.project,
                    user: container_expiration_policy.project.owner) do |project:, user:|
         ContainerExpirationPolicyService.new(project, user)
@@ -34,24 +36,28 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
       return
     end
 
-    return unless valid_runnable_policies.any?
-
-    response = ContainerExpirationPolicies::ThrottledExecutionService.new(container: valid_runnable_policies)
-                                                                     .execute
-
-    if allowed_to_reenqueue? && response[:remaining_container_repository_ids]&.any?
-      # TODO is this safe? to send remaining_container_repository_ids
-      self.class.perform_in(backoff_delay, @started_at, response[:remaining_container_repository_ids])
+    if @started_at.blank? && runnable_policies.any?
+      runnable_policies.each(&:schedule_next_run!)
+      ContainerExpirationPolicies::StartOnContainerRepositoriesService.new(container: runnable_policies)
+                                                                      .execute
     end
+
+    @started_at ||= Time.zone.now
+
+    return unless ContainerRepository.with_expiration_policy_started.any?
+
+    ContainerExpirationPolicies::ThrottledExecutionService.new.execute
+
+    self.class.perform_in(backoff_delay, @started_at) if allowed_to_reenqueue?
   end
 
-  def valid_runnable_policies
-    strong_memoize(:valid_runnable_policies) do
-      policies, invalid_policies = ContainerExpirationPolicy.runnable_schedules
-                                                            .preloaded
-                                                            .partition { |policy| policy.valid? }
+  def runnable_policies
+    strong_memoize(:runnable_policies) do
+      valid, invalid = ContainerExpirationPolicy.runnable_schedules
+                                                .preloaded
+                                                .partition { |policy| policy.valid? }
 
-      invalid_policies.each do |policy|
+      invalid.each do |policy|
         policy.disable!
         Gitlab::ErrorTracking.log_exception(
           ::ContainerExpirationPolicyWorker::InvalidPolicyError.new,
@@ -59,18 +65,18 @@ class ContainerExpirationPolicyWorker # rubocop:disable Scalability/IdempotentWo
         )
       end
 
-      policies
+      ContainerExpirationPolicy.for_project_id(valid.map(&:project_id))
     end
   end
 
   def allowed_to_run?
     return true unless @started_at.present?
 
-    (Time.zone.now - @started_at) < max_execution_time
+    (Time.zone.now.to_i - @started_at.to_i) < max_execution_time
   end
 
   def allowed_to_reenqueue?
-    Time.zone.now + backoff_delay - @started_at < max_execution_time
+    (Time.zone.now.to_i + backoff_delay - @started_at.to_i) < max_execution_time
   end
 
   def throttling_enabled?

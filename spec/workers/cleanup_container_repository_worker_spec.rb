@@ -17,7 +17,7 @@ RSpec.describe CleanupContainerRepositoryWorker, :clean_gitlab_redis_shared_stat
 
       it 'executes the destroy service' do
         expect(Projects::ContainerRepository::CleanupTagsService).to receive(:new)
-          .with(project, user, params.merge('container_expiration_policy' => false))
+          .with(project, user, params)
           .and_return(service)
         expect(service).to receive(:execute)
 
@@ -39,10 +39,11 @@ RSpec.describe CleanupContainerRepositoryWorker, :clean_gitlab_redis_shared_stat
 
     context 'container expiration policy' do
       let(:params) { { key: 'value', 'container_expiration_policy' => true } }
+      let(:expiration_policy_params) { repository.project.container_expiration_policy.attributes.except('created_at', 'updated_at') }
 
       it 'executes the destroy service' do
         expect(Projects::ContainerRepository::CleanupTagsService).to receive(:new)
-          .with(project, nil, params.merge('container_expiration_policy' => true))
+          .with(project, nil, params.merge(expiration_policy_params))
           .and_return(service)
 
         expect(service).to receive(:execute)

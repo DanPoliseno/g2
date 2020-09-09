@@ -13,6 +13,10 @@ FactoryBot.define do
       name { '' }
     end
 
+    trait :with_expiration_policy_started do
+      expiration_policy_started_at { 30.minutes.ago }
+    end
+
     after(:build) do |repository, evaluator|
       next if evaluator.tags.to_a.none?
 
