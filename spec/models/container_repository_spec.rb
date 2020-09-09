@@ -5,10 +5,7 @@ require 'spec_helper'
 RSpec.describe ContainerRepository do
   let(:group) { create(:group, name: 'group') }
   let(:project) { create(:project, path: 'test', group: group) }
-
-  let(:repository) do
-    create(:container_repository, name: 'my_image', project: project)
-  end
+  let(:repository) { create(:container_repository, name: 'my_image', project: project) }
 
   before do
     stub_container_registry_config(enabled: true,
@@ -180,6 +177,26 @@ RSpec.describe ContainerRepository do
     context 'when repository is not a root repository' do
       it 'returns false' do
         expect(repository).not_to be_root_repository
+      end
+    end
+  end
+
+  describe '#reset_expiration_policy_started_at!' do
+    subject { repository.reset_expiration_policy_started_at! }
+
+    context 'with a repository without expiration policy started' do
+      it "doesn't reset the column" do
+        expect(repository.expiration_policy_started_at).to eq(nil)
+        expect { subject }.not_to change { repository.reload.expiration_policy_started_at }
+      end
+    end
+
+    context 'with a repository with expiration policy started' do
+      let(:repository) { create(:container_repository, :with_expiration_policy_started) }
+
+      it 'resets the column' do
+        value = repository.expiration_policy_started_at
+        expect { subject }.to change { repository.reload.expiration_policy_started_at }.from(value).to be_nil
       end
     end
   end
