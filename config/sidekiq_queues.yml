@@ -238,8 +238,6 @@
   - 2
 - - refresh_license_compliance_checks
   - 2
-- - remote_mirror_lfs_object_uploader
-  - 2
 - - remote_mirror_notification
   - 2
 - - repository_check

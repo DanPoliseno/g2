@@ -41,56 +41,26 @@ module Projects
         message += "\n\n#{response.divergent_refs.join("\n")}"
 
         remote_mirror.mark_as_failed!(message)
-        return
+      else
+        remote_mirror.update_finish!
       end
-
-      remote_mirror.update_finish!
     end
 
-    # Minimal implementation of a git-lfs client, based on the docs here:
-    # https://github.com/git-lfs/git-lfs/blob/master/docs/api/batch.md
-    #
-    # The object is to send all the project's LFS objects to the remote
     def send_lfs_objects!(remote_mirror)
       return unless Feature.enabled?(:push_mirror_syncs_lfs, project)
       return unless project.lfs_enabled?
       return if project.lfs_objects.count == 0
 
-      # TODO: LFS sync should be configurable per remote mirror
-
       # TODO: LFS sync over SSH
       return unless remote_mirror.url =~ /\Ahttps?:\/\//i
       return unless remote_mirror.password_auth?
 
-      lfs_client = Gitlab::Lfs::Client.new(
-        remote_mirror.bare_url, # FIXME: do we need .git on the URL?
+      Lfs::PushService.new(
+        project,
+        current_user,
+        url: remote_mirror.bare_url,
         credentials: remote_mirror.credentials
-      )
-
-      project.lfs_objects.each_batch do |objects|
-        rsp = Gitlab::JSON.parse(lfs_client.batch('upload', objects))
-        objects = objects.index_by(&:oid)
-
-        rsp['objects'].each do |spec|
-          actions = spec.dig('actions')
-          upload = spec.dig('actions', 'upload')
-
-          # The server already has this object, or we don't need to upload it
-          #
-          next unless actions && upload
-
-          object = objects[spec['oid']]
-
-          # The server wants us to upload the object but something is wrong
-          #
-          unless object && object.size == spec['size'].to_i
-            Rails.logger.warn("Couldn't match #{spec['oid']} at size #{spec['size']} with an LFS object") # rubocop:disable Gitlab/RailsLogger
-            next
-          end
-
-          RemoteMirrorLfsObjectUploaderWorker.new.perform(remote_mirror.id, spec, object)
-        end
-      end
+      ).execute
     end
 
     def retry_or_fail(mirror, message, tries)
