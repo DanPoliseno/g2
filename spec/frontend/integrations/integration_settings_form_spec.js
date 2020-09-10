@@ -91,7 +91,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith('Connection successful.', { type: 'success' });
+      expect(testSpy).toHaveBeenCalledWith('Connection successful.');
     });
 
     it('should show error message if ajax request responds with test error', async () => {
@@ -107,7 +107,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith(`${errorMessage} ${serviceResponse}`, { type: 'error' });
+      expect(testSpy).toHaveBeenCalledWith(`${errorMessage} ${serviceResponse}`);
     });
 
     it('should show error message if ajax request failed', async () => {
@@ -117,7 +117,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith(errorMessage, { type: 'error' });
+      expect(testSpy).toHaveBeenCalledWith(errorMessage);
     });
 
     it('should always dispatch `setIsTesting` with `false` once request is completed', async () => {
