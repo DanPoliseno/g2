@@ -9,14 +9,31 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
   let_it_be(:conan_package_reference) { '123456789'}
   let(:params) { { package_scope: :instance } }
 
-  describe '#recipe_urls' do
-    subject { described_class.new(package, user, project, params).recipe_urls }
-
-    context 'no existing package' do
+  shared_examples 'no existing package' do
+    context 'when package does not exist' do
       let(:package) { nil }
 
       it { is_expected.to be_empty }
     end
+  end
+
+  shared_examples 'conan_file_metadatum is not found' do
+    context 'when no conan_file_metadatum exists' do
+      before do
+        package.package_files.each do |file|
+          file.conan_file_metadatum.destroy
+        end
+      end
+
+      it { is_expected.to be_empty }
+    end
+  end
+
+  describe '#recipe_urls' do
+    subject { described_class.new(package, user, project, params).recipe_urls }
+
+    it_behaves_like 'no existing package'
+    it_behaves_like 'conan_file_metadatum is not found'
 
     context 'existing package' do
       let(:expected_result) do
@@ -54,11 +71,8 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
   describe '#recipe_snapshot' do
     subject { described_class.new(package, user, project).recipe_snapshot }
 
-    context 'no existing package' do
-      let(:package) { nil }
-
-      it { is_expected.to be_empty }
-    end
+    it_behaves_like 'no existing package'
+    it_behaves_like 'conan_file_metadatum is not found'
 
     context 'existing package' do
       let(:expected_result) do
@@ -87,11 +101,8 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
       ).package_urls
     end
 
-    context 'no existing package' do
-      let(:package) { nil }
-
-      it { is_expected.to be_empty }
-    end
+    it_behaves_like 'no existing package'
+    it_behaves_like 'conan_file_metadatum is not found'
 
     context 'existing package' do
       let(:expected_result) do
@@ -173,11 +184,8 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
       ).package_snapshot
     end
 
-    context 'no existing package' do
-      let(:package) { nil }
-
-      it { is_expected.to be_empty }
-    end
+    it_behaves_like 'no existing package'
+    it_behaves_like 'conan_file_metadatum is not found'
 
     context 'existing package' do
       let(:expected_result) do

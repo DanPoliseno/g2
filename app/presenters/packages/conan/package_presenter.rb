@@ -18,7 +18,10 @@ module Packages
 
       def recipe_urls
         map_package_files do |package_file|
-          build_recipe_file_url(package_file) if package_file.conan_file_metadatum.recipe_file?
+          next unless package_file.conan_file_metadatum.recipe_file?
+
+          options = url_options(package_file)
+          recipe_file_url(options)
         end
       end
 
@@ -32,7 +35,12 @@ module Packages
         map_package_files do |package_file|
           next unless package_file.conan_file_metadatum.package_file? && matching_reference?(package_file)
 
-          build_package_file_url(package_file)
+          options = url_options(package_file).merge(
+            conan_package_reference: package_file.conan_file_metadatum.conan_package_reference,
+            package_revision: package_file.conan_file_metadatum.package_revision
+          )
+
+          package_file_url(options)
         end
       end
 
@@ -47,16 +55,6 @@ module Packages
       private
 
       def build_recipe_file_url(package_file)
-        recipe_file_url(url_options(package_file))
-      end
-
-      def build_package_file_url(package_file)
-        options = url_options(package_file).merge(
-          conan_package_reference: package_file.conan_file_metadatum.conan_package_reference,
-          package_revision: package_file.conan_file_metadatum.package_revision
-        )
-
-        package_file_url(options)
       end
 
       def url_options(package_file)
@@ -73,6 +71,8 @@ module Packages
 
       def map_package_files
         package_files.to_a.map do |package_file|
+          next unless package_file.conan_file_metadatum
+
           key = package_file.file_name
           value = yield(package_file)
           next unless key && value

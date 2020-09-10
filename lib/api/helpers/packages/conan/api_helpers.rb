@@ -5,6 +5,8 @@ module API
     module Packages
       module Conan
         module ApiHelpers
+          include Gitlab::Utils::StrongMemoize
+
           def present_download_urls(entity)
             authorize!(:read_package, project)
 
@@ -55,7 +57,7 @@ module API
           def build_package_file_upload_url(file_name)
             options = recipe_options(url_options(file_name)).merge(
               conan_package_reference: params[:conan_package_reference],
-              package_revision: '0'
+              package_revision: ::Packages::Conan::FileMetadatum::DEFAULT_PACKAGE_REVISION
             )
 
             package_file_url(options)
@@ -75,7 +77,7 @@ module API
             }
           end
 
-          def recipe_options(options, recipe_revision = '0')
+          def recipe_options(options, recipe_revision = ::Packages::Conan::FileMetadatum::DEFAULT_RECIPE_REVISION)
             options.merge(
               recipe_revision: recipe_revision
             )

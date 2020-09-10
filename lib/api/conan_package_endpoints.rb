@@ -32,7 +32,6 @@ module API
       helpers ::API::Helpers::PackagesManagerClientsHelpers
       helpers ::API::Helpers::Packages::Conan::ApiHelpers
       helpers ::API::Helpers::RelatedResourcesHelpers
-      helpers Gitlab::Utils::StrongMemoize
 
       before do
         require_packages_enabled!
