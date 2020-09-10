@@ -1069,7 +1069,7 @@ module Ci
         .base_and_ancestors
     end
 
-    def retry_bridge!
+    def reset_source_bridge!
       source_bridge.pending! if bridge_waiting?
     end
 
