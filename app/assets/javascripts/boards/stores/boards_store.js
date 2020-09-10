@@ -129,7 +129,6 @@ const boardsStore = {
     this.addList({
       id: 'blank',
       list_type: 'blank',
-      title: __('Welcome to your Issue Board!'),
       position: 0,
     });
   },

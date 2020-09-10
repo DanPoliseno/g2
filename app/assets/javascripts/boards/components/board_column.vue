@@ -1,10 +1,12 @@
 <script>
 import Sortable from 'sortablejs';
+import Cookies from 'js-cookie';
 import isWipLimitsOn from 'ee_else_ce/boards/mixins/is_wip_limits';
 import BoardListHeader from 'ee_else_ce/boards/components/board_list_header.vue';
+import { __ } from '~/locale';
+import ListLabel from '~/boards/models/label';
 import Tooltip from '~/vue_shared/directives/tooltip';
 import EmptyComponent from '~/vue_shared/components/empty_component';
-import BoardBlankState from './board_blank_state.vue';
 import BoardList from './board_list.vue';
 import boardsStore from '../stores/boards_store';
 import eventHub from '../eventhub';
@@ -14,7 +16,6 @@ import { ListType } from '../constants';
 export default {
   components: {
     BoardPromotionState: EmptyComponent,
-    BoardBlankState,
     BoardListHeader,
     BoardList,
   },
@@ -59,11 +60,19 @@ export default {
     return {
       detailIssue: boardsStore.detail,
       filter: boardsStore.filter,
+      predefinedLabels: [
+        new ListLabel({ title: __('To Do'), color: '#F0AD4E' }),
+        new ListLabel({ title: __('Doing'), color: '#5CB85C' }),
+      ],
     };
   },
   computed: {
     showBoardListAndBoardInfo() {
-      return this.list.type !== ListType.blank && this.list.type !== ListType.promotion;
+      if (this.list.type === ListType.blank) {
+        this.addDefaultLists();
+      }
+
+      return this.list.type !== ListType.promotion;
     },
     uniqueKey() {
       // eslint-disable-next-line @gitlab/require-i18n-strings
@@ -111,6 +120,55 @@ export default {
     showListNewIssueForm(listId) {
       eventHub.$emit('showForm', listId);
     },
+    addDefaultLists() {
+      const loadListIssues = listObj => {
+        const list = boardsStore.findList('title', listObj.title);
+
+        if (!list) {
+          return null;
+        }
+
+        list.id = listObj.id;
+        list.label.id = listObj.label.id;
+        return list.getIssues().catch(() => {
+          // TODO: handle request error
+        });
+      };
+
+      boardsStore.generateDefaultLists().then(() => {
+        window.location.reload();
+      });
+      /*
+
+      const loadListIssues = listObj => {
+        const list = boardsStore.findList('title', listObj.title);
+
+        if (!list) {
+          return null;
+        }
+
+        list.id = listObj.id;
+        list.label.id = listObj.label.id;
+        return list.getIssues().catch(() => {
+          // TODO: handle request error
+        });
+      };
+
+      // Save the labels
+      boardsStore
+        .generateDefaultLists()
+        .then(res => res.data)
+        .then(data => Promise.all(data.map(loadListIssues)))
+        .catch(() => {
+          boardsStore.removeList(undefined, 'label');
+          Cookies.remove('issue_board_welcome_hidden', {
+            path: '',
+          });
+          boardsStore.addBlankState();
+        });
+        */
+    },
+    clearBlankState: boardsStore.removeBlankState.bind(boardsStore),
   },
 };
 </script>
@@ -147,7 +205,6 @@ export default {
         :loading="list.loading"
         :root-path="rootPath"
       />
-      <board-blank-state v-if="canAdminList && list.id === 'blank'" />
 
       <!-- Will be only available in EE -->
       <board-promotion-state v-if="list.id === 'promotion'" />
