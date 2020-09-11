@@ -24,34 +24,36 @@ module Gitlab
         rsp = Gitlab::HTTP.post(
           batch_url,
           basic_auth: basic_auth,
-          body: body,
+          body: body.to_json,
           format: 'application/vnd.git-lfs+json'
         )
 
-        transfer = rsp.fetch('transfer', 'basic')
+        raise "Failed to submit batch" unless rsp.success?
+
+        body = Gitlab::Json.parse(rsp.parsed_response)
+
+        transfer = body.fetch('transfer', 'basic')
         raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
 
-        rsp
+        body
       end
 
-      def upload(object, upload_action)
-        # TODO: we need to discover credentials in some cases. These would come
-        #   from the remote mirror's credentials
-        #
-        Gitlab::HTTP.put(
-          upload_action['href'],
-          body_stream: object.file.file.to_file,
-          headers: {
-            'Content-Length' => object.size.to_s
-          }.merge(upload_action['header'] || {}),
+      def upload(object, upload_action, authenticated:)
+        file = object.file.open
+
+        params = {
+          body_stream: file,
+          headers: { 'Content-Length' => object.size.to_s }.merge(upload_action['header'] || {}),
           format: 'application/octet-stream'
-        )
-      end
+        }
 
-      # TODO: verify the file
-      #
-      def verify(object, verify_action)
-        # noop
+        params[:basic_auth] = basic_auth unless authenticated
+
+        rsp = Gitlab::HTTP.put(upload_action['href'], params)
+
+        raise "Failed to upload object" unless rsp.success?
+      ensure
+        file&.close
       end
 
       private

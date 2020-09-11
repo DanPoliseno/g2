@@ -21,6 +21,7 @@ module Lfs
       objects = objects.index_by(&:oid)
 
       rsp.fetch('objects', []).each do |spec|
+        authenticated = spec.dig('authenticated')
         actions = spec.dig('actions')
         upload = spec.dig('actions', 'upload')
         verify = spec.dig('actions', 'verify')
@@ -35,7 +36,7 @@ module Lfs
           next
         end
 
-        lfs_client.upload(object, upload)
+        lfs_client.upload(object, upload, authenticated: authenticated)
 
         if verify
           log_error("LFS upload verification requested, but not supported for #{object.oid}")
