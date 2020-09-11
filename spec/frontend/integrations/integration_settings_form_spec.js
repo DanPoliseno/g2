@@ -1,6 +1,9 @@
 import MockAdaptor from 'axios-mock-adapter';
 import axios from '~/lib/utils/axios_utils';
 import IntegrationSettingsForm from '~/integrations/integration_settings_form';
+import toast from '~/vue_shared/plugins/global_toast';
+
+jest.mock('~/vue_shared/plugins/global_toast');
 
 describe('IntegrationSettingsForm', () => {
   const FIXTURE = 'services/edit_service.html';
@@ -56,17 +59,14 @@ describe('IntegrationSettingsForm', () => {
     let integrationSettingsForm;
     let formData;
     let mock;
-    let testSpy;
 
     beforeEach(() => {
       mock = new MockAdaptor(axios);
 
       jest.spyOn(axios, 'put');
-      testSpy = jest.fn();
 
       integrationSettingsForm = new IntegrationSettingsForm('.js-integration-settings-form');
       integrationSettingsForm.init();
-      integrationSettingsForm.vue.$toast = { show: testSpy };
 
       // eslint-disable-next-line no-jquery/no-serialize
       formData = integrationSettingsForm.$form.serialize();
@@ -91,7 +91,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith('Connection successful.');
+      expect(toast).toHaveBeenCalledWith('Connection successful.');
     });
 
     it('should show error message if ajax request responds with test error', async () => {
@@ -107,7 +107,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith(`${errorMessage} ${serviceResponse}`);
+      expect(toast).toHaveBeenCalledWith(`${errorMessage} ${serviceResponse}`);
     });
 
     it('should show error message if ajax request failed', async () => {
@@ -117,7 +117,7 @@ describe('IntegrationSettingsForm', () => {
 
       await integrationSettingsForm.testSettings(formData);
 
-      expect(testSpy).toHaveBeenCalledWith(errorMessage);
+      expect(toast).toHaveBeenCalledWith(errorMessage);
     });
 
     it('should always dispatch `setIsTesting` with `false` once request is completed', async () => {

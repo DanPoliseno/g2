@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import axios from '../lib/utils/axios_utils';
 import { __, s__ } from '~/locale';
+import toast from '~/vue_shared/plugins/global_toast';
 import initForm from './edit';
 import eventHub from './edit/event_hub';
 
@@ -81,13 +82,13 @@ export default class IntegrationSettingsForm {
       .put(this.testEndPoint, formData)
       .then(({ data }) => {
         if (data.error) {
-          this.vue.$toast.show(`${data.message} ${data.service_response}`);
+          toast(`${data.message} ${data.service_response}`);
         } else {
-          this.vue.$toast.show(s__('Integrations|Connection successful.'));
+          toast(s__('Integrations|Connection successful.'));
         }
       })
       .catch(() => {
-        this.vue.$toast.show(__('Something went wrong on our end.'));
+        toast(__('Something went wrong on our end.'));
       })
       .finally(() => {
         this.vue.$store.dispatch('setIsTesting', false);
