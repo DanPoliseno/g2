@@ -2121,6 +2121,21 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
+msgid "Advanced Search"
+msgstr ""
+
+msgid "Advanced Search AWS IAM credentials"
+msgstr ""
+
+msgid "Advanced Search indexing restrictions"
+msgstr ""
+
+msgid "Advanced Search integration with Elasticsearch."
+msgstr ""
+
+msgid "Advanced Search zero-downtime reindexing"
+msgstr ""
+
 msgid "Advanced Settings"
 msgstr ""
 
@@ -9234,16 +9249,7 @@ msgstr ""
 msgid "Elasticsearch"
 msgstr ""
 
-msgid "Elasticsearch AWS IAM credentials"
-msgstr ""
-
-msgid "Elasticsearch indexing restrictions"
-msgstr ""
-
 msgid "Elasticsearch indexing started"
-msgstr ""
-
-msgid "Elasticsearch integration. Elasticsearch AWS IAM."
 msgstr ""
 
 msgid "Elasticsearch reindexing is already in progress"
@@ -9253,9 +9259,6 @@ msgid "Elasticsearch reindexing triggered"
 msgstr ""
 
 msgid "Elasticsearch returned status code: %{status_code}"
-msgstr ""
-
-msgid "Elasticsearch zero-downtime reindexing"
 msgstr ""
 
 msgid "Elastic|None. Select namespaces to index."

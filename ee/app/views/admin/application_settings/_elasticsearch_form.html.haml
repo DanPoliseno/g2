@@ -8,11 +8,11 @@
 %section.settings.as-elasticsearch.no-animate#js-elasticsearch-settings{ class: ('expanded' if expanded), data: { qa_selector: 'elasticsearch_tab' } }
   .settings-header
     %h4
-      = _('Elasticsearch')
+      = _('Advanced Search')
     %button.btn.js-settings-toggle{ type: 'button' }
       = expanded ? 'Collapse' : 'Expand'
     %p
-      = _('Elasticsearch integration. Elasticsearch AWS IAM.')
+      = _('Advanced Search integration with Elasticsearch.')
   .settings-content
     = form_for @application_setting, url: general_admin_application_settings_path(anchor: 'js-elasticsearch-settings'), html: { class: 'fieldset-form' } do |f|
       = form_errors(@application_setting) if expanded
@@ -23,7 +23,7 @@
             .form-check
               = f.check_box :elasticsearch_indexing, class: 'form-check-input', data: { qa_selector: 'indexing_checkbox' }
               = f.label :elasticsearch_indexing, class: 'form-check-label' do
-                Elasticsearch indexing
+                Advanced Search indexing
               - unless Gitlab::CurrentSettings.elasticsearch_indexing?
                 .form-text.text-muted
                   = _('Please create an index before enabling indexing')
@@ -37,7 +37,7 @@
               .form-check
                 = f.check_box :elasticsearch_pause_indexing, class: 'form-check-input', data: { qa_selector: 'pause_checkbox' }, disabled: !Gitlab::CurrentSettings.elasticsearch_indexing?
                 = f.label :elasticsearch_pause_indexing, class: 'form-check-label' do
-                  Pause Elasticsearch indexing
+                  Pause Advanced Search indexing
                 .form-text.text-muted
                   = _('Changes are still tracked. Useful for cluster/index migrations.')
 
@@ -45,7 +45,7 @@
             .form-check
               = f.check_box :elasticsearch_search, class: 'form-check-input', data: { qa_selector: 'search_checkbox' }
               = f.label :elasticsearch_search, class: 'form-check-label' do
-                Search with Elasticsearch enabled
+                Search with Advanced Search enabled
 
           .form-group
             = f.label :elasticsearch_url, 'URL', class: 'label-bold'
@@ -94,7 +94,7 @@
               = _('This only applies to repository indexing operations.')
 
         .sub-section
-          %h4= _('Elasticsearch zero-downtime reindexing')
+          %h4= _('Advanced Search zero-downtime reindexing')
           = link_to _('Trigger cluster reindexing'), admin_elasticsearch_trigger_reindexing_path, class: 'btn btn-success', method: :post, disabled: @elasticsearch_reindexing_task&.in_progress?
           .form-text.text-muted
             = _('This feature should be used with an index that was created after 13.0')
@@ -120,7 +120,7 @@
                 .progress-bar.progress-bar-striped.bg-success{ "aria-valuemax" => "100", "aria-valuemin" => "0", "aria-valuenow" => percentage, :role => "progressbar", :style => "width: #{percentage}%" }
 
         .sub-section
-          %h4= _('Elasticsearch indexing restrictions')
+          %h4= _('Advanced Search indexing restrictions')
           .form-group
             .form-check
               = f.check_box :elasticsearch_limit_indexing, class: 'form-check-input js-limit-checkbox'
@@ -142,7 +142,7 @@
               = f.text_field :elasticsearch_project_ids, class: 'js-elasticsearch-projects', value: elasticsearch_project_ids, data: { selected: elasticsearch_objects_options(@application_setting.elasticsearch_limited_projects(true)).to_json }
 
         .sub-section
-          %h4= _('Elasticsearch AWS IAM credentials')
+          %h4= _('Advanced Search AWS IAM credentials')
           .form-group
             .form-check
               = f.check_box :elasticsearch_aws, class: 'form-check-input'
