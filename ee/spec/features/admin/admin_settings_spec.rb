@@ -58,10 +58,10 @@ RSpec.describe 'Admin updates EE-only settings' do
       end
     end
 
-    it 'changes elasticsearch settings' do
+    it 'changes Advanced Search settings' do
       page.within('.as-elasticsearch') do
-        check 'Elasticsearch indexing'
-        check 'Search with Elasticsearch enabled'
+        check 'Advanced Search indexing'
+        check 'Search with Advanced Search enabled'
         fill_in 'Number of Elasticsearch shards', with: '120'
         fill_in 'Number of Elasticsearch replicas', with: '2'
         fill_in 'Maximum file size indexed (KiB)', with: '5000'
