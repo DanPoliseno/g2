@@ -282,9 +282,11 @@ RSpec.describe Ci::RetryPipelineService, '#execute' do
     end
 
     context 'when the pipeline is a child pipeline and the bridge is depended' do
-      let!(:parent_pipeline) { create(:ci_empty_pipeline) }
-      let!(:bridge) { create(:ci_bridge, pipeline: parent_pipeline, status: 'success', options: { trigger: { strategy: 'depend' } }) }
-      let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge) }
+      let!(:bridge) { create(:ci_bridge, status: 'success', options: { trigger: { strategy: 'depend' } }) }
+
+      before do
+        create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge)
+      end
 
       it 'marks source bridge as pending' do
         service.execute(pipeline)
