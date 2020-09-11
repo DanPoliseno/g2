@@ -1391,14 +1391,14 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
 
       context 'multi-project pipelines' do
         let!(:downstream_project) { create(:project, :repository) }
-        let!(:upstream_pipeline) { create(:ci_empty_pipeline) }
+        let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
         let!(:downstream_pipeline) { create(:ci_pipeline, project: downstream_project) }
 
         it_behaves_like 'upstream downstream pipeline'
       end
 
       context 'parent-child pipelines' do
-        let!(:upstream_pipeline) { create(:ci_empty_pipeline) }
+        let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
         let!(:downstream_pipeline) { create(:ci_pipeline, project: project) }
 
         it_behaves_like 'upstream downstream pipeline'
@@ -3574,7 +3574,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
 
   describe 'reset_source_bridge!' do
     context 'when the pipeline is a child pipeline and the bridge is depended' do
-      let!(:parent_pipeline) { create(:ci_empty_pipeline) }
+      let!(:parent_pipeline) { create(:ci_pipeline, project: project) }
       let!(:bridge) { create(:ci_bridge, pipeline: parent_pipeline, status: 'success', options: { trigger: { strategy: 'depend' } }) }
       let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge) }
 
@@ -3586,7 +3586,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
     end
 
     context 'when the pipeline is a child pipeline and the bridge is not depended' do
-      let!(:parent_pipeline) { create(:ci_empty_pipeline) }
+      let!(:parent_pipeline) { create(:ci_pipeline, project: project) }
       let!(:bridge) { create(:ci_bridge, pipeline: parent_pipeline, status: 'success') }
       let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge) }
 
