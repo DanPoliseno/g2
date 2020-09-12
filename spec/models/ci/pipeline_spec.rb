@@ -1367,6 +1367,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
     describe 'bridge triggered pipeline' do
       shared_examples 'upstream downstream pipeline' do
         let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: downstream_pipeline, source_job: bridge) }
+        let!(:job) { downstream_pipeline.builds.first }
 
         context 'when source bridge is dependent on pipeline status' do
           let!(:bridge) { create(:ci_bridge, pipeline: upstream_pipeline, options: { trigger: { strategy: 'depend' } }) }
@@ -1375,6 +1376,83 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
             expect(::Ci::PipelineBridgeStatusWorker).to receive(:perform_async).with(downstream_pipeline.id)
 
             downstream_pipeline.succeed!
+          end
+
+          context 'when the downstream pipeline first fails then retries and succeeds' do
+            it 'makes the upstream pipeline successful' do
+              Sidekiq::Testing.inline! { job.drop! }
+
+              expect(downstream_pipeline.reload).to be_failed
+              expect(upstream_pipeline.reload).to be_failed
+
+              Sidekiq::Testing.inline! do
+                new_job = Ci::Build.retry(job, project.users.first)
+
+                expect(downstream_pipeline.reload).to be_running
+                expect(upstream_pipeline.reload).to be_running
+
+                new_job.success!
+              end
+
+              expect(downstream_pipeline.reload).to be_success
+              expect(upstream_pipeline.reload).to be_success
+            end
+          end
+
+          context 'when the downstream pipeline first succeeds then retries and fails' do
+            it 'makes the upstream pipeline failed' do
+              Sidekiq::Testing.inline! { job.success! }
+
+              expect(downstream_pipeline.reload).to be_success
+              expect(upstream_pipeline.reload).to be_success
+
+              Sidekiq::Testing.inline! do
+                new_job = Ci::Build.retry(job, project.users.first)
+
+                expect(downstream_pipeline.reload).to be_running
+                expect(upstream_pipeline.reload).to be_running
+
+                new_job.drop!
+              end
+
+              expect(downstream_pipeline.reload).to be_failed
+              expect(upstream_pipeline.reload).to be_failed
+            end
+          end
+
+          context 'when the upstream pipeline has another dependent upstream pipeline' do
+            let!(:upstream_of_upstream_pipeline) { create(:ci_pipeline) }
+
+            before do
+              upstream_bridge = create(:ci_bridge, pipeline: upstream_of_upstream_pipeline,
+                                                   options: { trigger: { strategy: 'depend' } })
+              create(:ci_sources_pipeline, pipeline: upstream_pipeline,
+                                           source_job: upstream_bridge)
+            end
+
+            context 'when the downstream pipeline first fails then retries and succeeds' do
+              it 'makes upstream pipelines successful' do
+                Sidekiq::Testing.inline! { job.drop! }
+
+                expect(downstream_pipeline.reload).to be_failed
+                expect(upstream_pipeline.reload).to be_failed
+                expect(upstream_of_upstream_pipeline.reload).to be_failed
+
+                Sidekiq::Testing.inline! do
+                  new_job = Ci::Build.retry(job, project.users.first)
+
+                  expect(downstream_pipeline.reload).to be_running
+                  expect(upstream_pipeline.reload).to be_running
+                  expect(upstream_of_upstream_pipeline.reload).to be_running
+
+                  new_job.success!
+                end
+
+                expect(downstream_pipeline.reload).to be_success
+                expect(upstream_pipeline.reload).to be_success
+                expect(upstream_of_upstream_pipeline.reload).to be_success
+              end
+            end
           end
         end
 
@@ -1392,17 +1470,17 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
       context 'multi-project pipelines' do
         let!(:downstream_project) { create(:project, :repository) }
         let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
-        let!(:downstream_pipeline) { create(:ci_pipeline, project: downstream_project) }
+        let!(:downstream_pipeline) { create(:ci_pipeline, :with_job, project: downstream_project) }
 
         it_behaves_like 'upstream downstream pipeline'
       end
 
-      context 'parent-child pipelines' do
-        let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
-        let!(:downstream_pipeline) { create(:ci_pipeline, project: project) }
+      # context 'parent-child pipelines' do
+      #   let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
+      #   let!(:downstream_pipeline) { create(:ci_pipeline, :with_job, project: project) }
 
-        it_behaves_like 'upstream downstream pipeline'
-      end
+      #   it_behaves_like 'upstream downstream pipeline'
+      # end
     end
 
     def create_build(name, *traits, queued_at: current, started_from: 0, **opts)
@@ -3572,29 +3650,64 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
     end
   end
 
-  describe 'reset_source_bridge!' do
+  describe 'reset_source_bridges!' do
     context 'when the pipeline is a child pipeline and the bridge is depended' do
       let!(:parent_pipeline) { create(:ci_pipeline, project: project) }
-      let!(:bridge) { create(:ci_bridge, pipeline: parent_pipeline, status: 'success', options: { trigger: { strategy: 'depend' } }) }
-      let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge) }
+      let!(:bridge) { create_bridge(parent_pipeline, pipeline, true) }
 
       it 'marks source bridge as pending' do
-        pipeline.reset_source_bridge!
+        pipeline.reset_source_bridges!
 
         expect(bridge.reload).to be_pending
+      end
+
+      context 'when the parent pipeline has a dependent upstream pipeline' do
+        let!(:upstream_bridge) do
+          create_bridge(create(:ci_pipeline, project: create(:project)), parent_pipeline, true)
+        end
+
+        it 'marks all source bridges as pending' do
+          pipeline.reset_source_bridges!
+
+          expect(bridge.reload).to be_pending
+          expect(upstream_bridge.reload).to be_pending
+        end
       end
     end
 
     context 'when the pipeline is a child pipeline and the bridge is not depended' do
       let!(:parent_pipeline) { create(:ci_pipeline, project: project) }
-      let!(:bridge) { create(:ci_bridge, pipeline: parent_pipeline, status: 'success') }
-      let!(:source_pipeline) { create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge) }
+      let!(:bridge) { create_bridge(parent_pipeline, pipeline, false) }
 
       it 'does not touch source bridge' do
-        pipeline.reset_source_bridge!
+        pipeline.reset_source_bridges!
 
         expect(bridge.reload).to be_success
       end
+
+      context 'when the parent pipeline has a dependent upstream pipeline' do
+        let!(:upstream_bridge) do
+          create_bridge(create(:ci_pipeline, project: create(:project)), parent_pipeline, true)
+        end
+
+        it 'does not touch any source bridge' do
+          pipeline.reset_source_bridges!
+
+          expect(bridge.reload).to be_success
+          expect(upstream_bridge.reload).to be_success
+        end
+      end
+    end
+
+    private
+
+    def create_bridge(upstream, downstream, depend = false)
+      options = depend ? { trigger: { strategy: 'depend' } } : {}
+
+      bridge = create(:ci_bridge, pipeline: upstream, status: 'success', options: options)
+      create(:ci_sources_pipeline, pipeline: downstream, source_job: bridge)
+
+      bridge
     end
   end
 end

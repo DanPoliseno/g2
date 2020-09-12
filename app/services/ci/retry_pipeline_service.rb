@@ -26,7 +26,7 @@ module Ci
         retry_optimistic_lock(skipped) { |build| build.process }
       end
 
-      pipeline.reset_source_bridge!
+      pipeline.reset_source_bridges!
 
       MergeRequests::AddTodoWhenBuildFailsService
         .new(project, current_user)
