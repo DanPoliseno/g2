@@ -296,7 +296,7 @@ buffered and caught up once unpaused.
 
 TIP: **Tip:**
 If your index was created with GitLab 13.0 or greater, you can directly
-[trigger the reindex](#trigger-the-reindex-via-the-elasticsearch-administration).
+[trigger the reindex](#trigger-the-reindex-via-the-advanced-search-administration).
 
 This process involves several shell commands and curl invocations, so a good
 initial setup will help for later:
@@ -399,7 +399,7 @@ To trigger the re-index from `primary` index:
           $CLUSTER_URL/_aliases
     ```
 
-    The reindexing is now completed. Your GitLab instance is now ready to use the [automated in-cluster reindexing](#trigger-the-reindex-via-the-elasticsearch-administration) feature for future reindexing.
+    The reindexing is now completed. Your GitLab instance is now ready to use the [automated in-cluster reindexing](#trigger-the-reindex-via-the-advanced-search-administration) feature for future reindexing.
 
 1. Unpause the indexing
 
