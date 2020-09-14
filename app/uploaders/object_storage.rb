@@ -12,6 +12,17 @@ module ObjectStorage
   UnknownStoreError = Class.new(StandardError)
   ObjectStorageUnavailable = Class.new(StandardError)
 
+  class ExclusiveLeaseTaken < StandardError
+    def initialize(lease_key)
+      @lease_key = lease_key
+    end
+
+    def message
+      *lease_key_group, _ = *@lease_key.split(":")
+      "Exclusive lease for #{lease_key_group.join(':')} is already taken."
+    end
+  end
+
   TMP_UPLOAD_PATH = 'tmp/uploads'
 
   module Store
@@ -125,7 +136,6 @@ module ObjectStorage
 
     included do |base|
       base.include(ObjectStorage)
-      base.include(::Gitlab::ExclusiveLeaseHelpers)
 
       after :migrate, :delete_migrated_file
     end
@@ -259,7 +269,7 @@ module ObjectStorage
     end
 
     def use_file(&blk)
-      in_lock(exclusive_lease_key, ttl: 1.hour.to_i, retries: 10, sleep_sec: 0.25) do
+      with_exclusive_lease do
         unsafe_use_file(&blk)
       end
     end
@@ -288,7 +298,7 @@ module ObjectStorage
     #   new_store: Enum (Store::LOCAL, Store::REMOTE)
     #
     def migrate!(new_store)
-      in_lock(exclusive_lease_key, ttl: 1.hour.to_i, retries: 0) do
+      with_exclusive_lease do
         unsafe_migrate!(new_store)
       end
     end
@@ -435,6 +445,16 @@ module ObjectStorage
       else
         raise UnknownStoreError
       end
+    end
+
+    def with_exclusive_lease
+      lease_key = exclusive_lease_key
+      uuid = Gitlab::ExclusiveLease.new(lease_key, timeout: 1.hour.to_i).try_obtain
+      raise ExclusiveLeaseTaken.new(lease_key) unless uuid
+
+      yield uuid
+    ensure
+      Gitlab::ExclusiveLease.cancel(lease_key, uuid)
     end
 
     #
