@@ -3,8 +3,9 @@ require 'spec_helper'
 
 RSpec.describe DesignManagement::DesignCollection do
   include DesignManagementTestHelpers
+  using RSpec::Parameterized::TableSyntax
 
-  let_it_be(:issue, reload: true) { create(:issue) }
+  let_it_be(:issue, refind: true) { create(:issue) }
 
   subject(:collection) { described_class.new(issue) }
 
@@ -42,6 +43,38 @@ RSpec.describe DesignManagement::DesignCollection do
       design2 = collection.find_or_create_design!(filename: 'design2.jpg')
 
       expect(collection.designs.ordered).to eq([design1, design2])
+    end
+  end
+
+  describe "#copy_state", :clean_gitlab_redis_shared_state do
+    it "defaults to ready" do
+      expect(collection).to be_copy_ready
+    end
+
+    it "persists its state changes between initializations" do
+      collection.queue_copy!
+
+      expect(described_class.new(issue)).to be_copy_pending
+    end
+
+    where(:state, :can_queue, :can_start, :can_end, :can_error, :can_reset) do
+      "ready"   | true  | false | false | true  | true
+      "pending" | false | true  | false | true  | true
+      "copying" | false | false | true  | true  | true
+      "error"   | false | false | false | false | true
+    end
+
+    with_them do
+      subject do
+        described_class.new(issue).tap { |dc| dc.copy_state = state }
+      end
+
+      it "maintains state machine transition rules", :aggregate_failures do
+        expect(subject.can_queue_copy?).to eq(can_queue)
+        expect(subject.can_start_copy?).to eq(can_start)
+        expect(subject.can_end_copy?).to eq(can_end)
+        expect(subject.can_reset_copy?).to eq(can_reset)
+      end
     end
   end
 
