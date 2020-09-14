@@ -7509,6 +7509,9 @@ msgstr ""
 msgid "Current password"
 msgstr ""
 
+msgid "Current view"
+msgstr ""
+
 msgid "Current vulnerabilities count"
 msgstr ""
 
