@@ -20,8 +20,6 @@ module QA
           push.commit_message = 'Add README.md'
           push.use_lfs = true
         end
-        
-        
         source_project_push.project.visit!
 
         Page::Project::Menu.perform(&:go_to_repository_settings)
