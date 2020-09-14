@@ -33,44 +33,6 @@ RSpec.describe 'Project remote mirror', :feature do
       end
     end
 
-    context 'pushing to a remote' do
-      let(:remote_project) { create(:forked_project_with_submodules) }
-      let!(:lfs_object) { create(:lfs_objects_project, project: project).lfs_object }
-      let(:remote_mirror) { create(:remote_mirror, project: project, enabled: true) }
-
-      before do
-        remote_project.add_maintainer(user)
-
-        project.update_attribute(:lfs_enabled, true)
-
-        allow(remote_mirror)
-          .to receive(:update_repository)
-          .and_return(double(divergent_refs: []))
-        allow(Gitlab.config.lfs).to receive(:enabled).and_return(true)
-
-        # TODO: This needs to return a response as if it were our remote LFS
-        #   server.
-        #
-        stub_request(:post, "http://test.com/info/lfs/objects/batch")
-          .with(
-            body: "operation=upload&transfers[]=basic&objects[][oid]=#{lfs_object.oid}&objects[][size]=#{lfs_object.size}",
-            headers: {
-              'Accept'          => '*/*',
-              'Accept-Encoding' => 'gzip;q=1.0,deflate;q=0.6,identity;q=0.3',
-              'Authorization'   => 'Basic Zm9vOmJhcg==',
-              'User-Agent'      => 'Ruby'
-            }
-          ).to_return(status: 200, body: "", headers: {})
-      end
-
-      xit 'transfers code and LFS objects' do
-        Projects::UpdateRemoteMirrorService.new(project, user).execute(remote_mirror, 0)
-
-        expect(remote_project.lfs_objects.reload.count).to eq(1)
-        expect(remote_project.commit).to eq(project.commit)
-      end
-    end
-
     def expect_mirror_to_have_error_and_timeago(timeago)
       row = first('.js-mirrors-table-body tr')
       expect(row).to have_content('Error')
