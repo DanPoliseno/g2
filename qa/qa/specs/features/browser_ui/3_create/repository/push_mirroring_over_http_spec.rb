@@ -17,7 +17,10 @@ module QA
           push.file_name = 'README.md'
           push.file_content = '# This is a test project'
           push.commit_message = 'Add README.md'
+          push.use_lfs = true
         end
+        
+        
         source_project_push.project.visit!
 
         Page::Project::Menu.perform(&:go_to_repository_settings)
