@@ -281,8 +281,8 @@ RSpec.describe Ci::RetryPipelineService, '#execute' do
       end
     end
 
-    context 'when the pipeline is a child pipeline and the bridge is depended' do
-      let!(:bridge) { create(:ci_bridge, status: 'success', options: { trigger: { strategy: 'depend' } }) }
+    context 'when the pipeline is a downstream pipeline and the bridge is depended' do
+      let!(:bridge) { create(:ci_bridge, :strategy_depend, status: 'success') }
 
       before do
         create(:ci_sources_pipeline, pipeline: pipeline, source_job: bridge)

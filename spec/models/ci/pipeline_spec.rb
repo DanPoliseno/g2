@@ -1370,7 +1370,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
         let!(:job) { downstream_pipeline.builds.first }
 
         context 'when source bridge is dependent on pipeline status' do
-          let!(:bridge) { create(:ci_bridge, pipeline: upstream_pipeline, options: { trigger: { strategy: 'depend' } }) }
+          let!(:bridge) { create(:ci_bridge, :strategy_depend, pipeline: upstream_pipeline) }
 
           it 'schedules the pipeline bridge worker' do
             expect(::Ci::PipelineBridgeStatusWorker).to receive(:perform_async).with(downstream_pipeline.id)
@@ -1424,8 +1424,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
             let!(:upstream_of_upstream_pipeline) { create(:ci_pipeline) }
 
             before do
-              upstream_bridge = create(:ci_bridge, pipeline: upstream_of_upstream_pipeline,
-                                                   options: { trigger: { strategy: 'depend' } })
+              upstream_bridge = create(:ci_bridge, :strategy_depend, pipeline: upstream_of_upstream_pipeline)
               create(:ci_sources_pipeline, pipeline: upstream_pipeline,
                                            source_job: upstream_bridge)
             end
@@ -1475,12 +1474,12 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
         it_behaves_like 'upstream downstream pipeline'
       end
 
-      # context 'parent-child pipelines' do
-      #   let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
-      #   let!(:downstream_pipeline) { create(:ci_pipeline, :with_job, project: project) }
+      context 'parent-child pipelines' do
+        let!(:upstream_pipeline) { create(:ci_pipeline, project: project) }
+        let!(:downstream_pipeline) { create(:ci_pipeline, :with_job, project: project) }
 
-      #   it_behaves_like 'upstream downstream pipeline'
-      # end
+        it_behaves_like 'upstream downstream pipeline'
+      end
     end
 
     def create_build(name, *traits, queued_at: current, started_from: 0, **opts)
@@ -3650,13 +3649,13 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
     end
   end
 
-  describe 'reset_source_bridges!' do
+  describe 'reset_ancestor_bridges!' do
     context 'when the pipeline is a child pipeline and the bridge is depended' do
       let!(:parent_pipeline) { create(:ci_pipeline, project: project) }
       let!(:bridge) { create_bridge(parent_pipeline, pipeline, true) }
 
       it 'marks source bridge as pending' do
-        pipeline.reset_source_bridges!
+        pipeline.reset_ancestor_bridges!
 
         expect(bridge.reload).to be_pending
       end
@@ -3667,7 +3666,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
         end
 
         it 'marks all source bridges as pending' do
-          pipeline.reset_source_bridges!
+          pipeline.reset_ancestor_bridges!
 
           expect(bridge.reload).to be_pending
           expect(upstream_bridge.reload).to be_pending
@@ -3680,7 +3679,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
       let!(:bridge) { create_bridge(parent_pipeline, pipeline, false) }
 
       it 'does not touch source bridge' do
-        pipeline.reset_source_bridges!
+        pipeline.reset_ancestor_bridges!
 
         expect(bridge.reload).to be_success
       end
@@ -3691,7 +3690,7 @@ RSpec.describe Ci::Pipeline, :mailer, factory_default: :keep do
         end
 
         it 'does not touch any source bridge' do
-          pipeline.reset_source_bridges!
+          pipeline.reset_ancestor_bridges!
 
           expect(bridge.reload).to be_success
           expect(upstream_bridge.reload).to be_success

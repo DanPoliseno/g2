@@ -1069,8 +1069,8 @@ module Ci
         .base_and_ancestors
     end
 
-    def reset_source_bridges!
-      base_and_ancestors.each do |pipeline|
+    def reset_ancestor_bridges!
+      base_and_ancestors.includes(:source_bridge).each do |pipeline|
         break unless pipeline.bridge_waiting?
 
         pipeline.source_bridge.pending!
