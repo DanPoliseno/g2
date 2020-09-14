@@ -28,12 +28,12 @@ module Gitlab
           headers: { 'Content-Type' => 'application/vnd.git-lfs+json' }
         )
 
-        raise "Failed to submit batch" unless rsp.success?
+        raise BatchSubmitError unless rsp.success?
 
         body = Gitlab::Json.parse(rsp.body)
         transfer = body.fetch('transfer', 'basic')
 
-        raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
+        raise UnsupportedTransferError.new(transfer.inspect) unless transfer == 'basic'
 
         body
       end
@@ -53,7 +53,7 @@ module Gitlab
 
         rsp = Gitlab::HTTP.put(upload_action['href'], params)
 
-        raise "Failed to upload object" unless rsp.success?
+        raise ObjectUploadError unless rsp.success?
       ensure
         file&.close
       end
@@ -70,6 +70,29 @@ module Gitlab
         return unless credentials[:auth_method] == "password"
 
         { username: credentials[:user], password: credentials[:password] }
+      end
+
+      class BatchSubmitError < StandardError
+        def message
+          "Failed to submit batch"
+        end
+      end
+
+      class UnsupportedTransferError < StandardError
+        def initialize(transfer = nil)
+          super
+          @transfer = transfer
+        end
+
+        def message
+          "Unsupported transfer: #{@transfer}"
+        end
+      end
+
+      class ObjectUploadError < StandardError
+        def message
+          "Failed to upload object"
+        end
       end
     end
   end
