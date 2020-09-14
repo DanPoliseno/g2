@@ -21,7 +21,8 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
     context 'when no conan_file_metadatum exists' do
       before do
         package.package_files.each do |file|
-          file.conan_file_metadatum.destroy
+          file.conan_file_metadatum.delete
+          file.reload
         end
       end
 
@@ -88,6 +89,7 @@ RSpec.describe ::Packages::Conan::PackagePresenter do
 
   describe '#package_urls' do
     let(:reference) { conan_package_reference }
+
     let(:params) do
       {
         conan_package_reference: reference,

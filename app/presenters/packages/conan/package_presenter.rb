@@ -54,19 +54,15 @@ module Packages
 
       private
 
-      def build_recipe_file_url(package_file)
-      end
-
       def url_options(package_file)
-        options = {
+        {
           package_name: @package.name,
           package_version: @package.version,
           package_username: @package.conan_metadatum.package_username,
           package_channel: @package.conan_metadatum.package_channel,
-          file_name: package_file.file_name
+          file_name: package_file.file_name,
+          recipe_revision: package_file.conan_file_metadatum.recipe_revision.presence || ::Packages::Conan::FileMetadatum::DEFAULT_RECIPE_REVISION
         }
-
-        recipe_options(options, package_file.conan_file_metadatum.recipe_revision)
       end
 
       def map_package_files

@@ -70,7 +70,7 @@ end
 
 RSpec.shared_examples 'conan search endpoint' do
   before do
-    project.update!(visibility_level: Gitlab::VisibilityLevel::PUBLIC)
+    project.update_column(:visibility_level, Gitlab::VisibilityLevel::PUBLIC)
 
     get api(url), headers: headers, params: params
   end
@@ -214,16 +214,6 @@ RSpec.shared_examples 'rejects recipe for invalid project' do
   context 'with invalid project' do
     let(:recipe_path) { 'aa/bb/cc/dd' }
     let(:project_id) { 9999 }
-
-    it_behaves_like 'not found request'
-  end
-end
-
-RSpec.shared_examples 'rejects recipe for not found package' do
-  context 'with invalid recipe path' do
-    let(:recipe_path) do
-      'aa/bb/%{project}/ccc' % { project: ::Packages::Conan::Metadatum.package_username_from(full_path: project.full_path) }
-    end
 
     it_behaves_like 'not found request'
   end
@@ -541,7 +531,7 @@ end
 RSpec.shared_examples 'an internal project with packages' do
   before do
     project.team.truncate
-    project.update!(visibility_level: Gitlab::VisibilityLevel::INTERNAL)
+    project.update_column(:visibility_level, Gitlab::VisibilityLevel::INTERNAL)
   end
 
   it_behaves_like 'denies download with no token'
@@ -556,7 +546,7 @@ end
 
 RSpec.shared_examples 'a private project with packages' do
   before do
-    project.update!(visibility_level: Gitlab::VisibilityLevel::PRIVATE)
+    project.update_column(:visibility_level, Gitlab::VisibilityLevel::PRIVATE)
   end
 
   it_behaves_like 'denies download with no token'
