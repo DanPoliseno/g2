@@ -25,14 +25,14 @@ module Gitlab
           batch_url,
           basic_auth: basic_auth,
           body: body.to_json,
-          format: 'application/vnd.git-lfs+json'
+          headers: { 'Content-Type' => 'application/vnd.git-lfs+json' }
         )
 
         raise "Failed to submit batch" unless rsp.success?
 
-        body = Gitlab::Json.parse(rsp.parsed_response)
-
+        body = Gitlab::Json.parse(rsp.body)
         transfer = body.fetch('transfer', 'basic')
+
         raise "Unsupported transfer: #{transfer.inspect}" unless transfer == 'basic'
 
         body
@@ -43,8 +43,10 @@ module Gitlab
 
         params = {
           body_stream: file,
-          headers: { 'Content-Length' => object.size.to_s }.merge(upload_action['header'] || {}),
-          format: 'application/octet-stream'
+          headers: {
+            'Content-Length' => object.size.to_s,
+            'Content-Type' => 'application/octet-stream'
+          }.merge(upload_action['header'] || {})
         }
 
         params[:basic_auth] = basic_auth unless authenticated

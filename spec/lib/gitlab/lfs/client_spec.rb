@@ -31,7 +31,11 @@ RSpec.describe Gitlab::Lfs::Client do
         stub_batch(
           objects: objects,
           headers: basic_auth_headers
-        ).to_return(status: 200, body: { 'objects' => 'anything', 'transfer' => 'basic' }.to_json)
+        ).to_return(
+          status: 200,
+          body: { 'objects' => 'anything', 'transfer' => 'basic' }.to_json,
+          headers: { 'Content-Type' => 'application/vnd.git-lfs+json' }
+        )
 
         result = lfs_client.batch('upload', objects)
 
@@ -60,7 +64,11 @@ RSpec.describe Gitlab::Lfs::Client do
         stub_batch(
           objects: objects,
           headers: basic_auth_headers
-        ).to_return(status: 200, body: { 'transfer' => 'carrier-pigeon' }.to_json)
+        ).to_return(
+          status: 200,
+          body: { 'transfer' => 'carrier-pigeon' }.to_json,
+          headers: { 'Content-Type' => 'application/vnd.git-lfs+json' }
+        )
 
         expect { lfs_client.batch('upload', objects) }.to raise_error(/Unsupported transfer/)
       end
