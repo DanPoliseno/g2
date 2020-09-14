@@ -46,9 +46,8 @@ module Gitlab
 
       def read_zip_file!(file_path)
         job.artifacts_file.use_open_file do |file|
-          zip_file = Zip::File.open_buffer(file)
+          zip_file = Zip::File.new(file, false, true)
           entry = zip_file.find_entry(file_path)
-          ap entry
 
           unless entry
             raise Error, "Path `#{file_path}` does not exist inside the `#{job.name}` artifacts archive!"

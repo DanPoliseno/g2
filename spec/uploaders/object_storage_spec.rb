@@ -213,7 +213,7 @@ RSpec.describe ObjectStorage do
       describe '#use_open_file' do
         context 'when file is stored locally' do
           it "returns the file" do
-            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(Tempfile))
+            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(ObjectStorage::Concern::OpenFile))
           end
         end
 
@@ -226,7 +226,7 @@ RSpec.describe ObjectStorage do
           end
 
           it "returns the file" do
-            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(Tempfile))
+            expect { |b| uploader.use_open_file(&b) }.to yield_with_args(an_instance_of(ObjectStorage::Concern::OpenFile))
           end
         end
       end
