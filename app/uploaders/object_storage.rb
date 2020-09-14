@@ -213,8 +213,7 @@ module ObjectStorage
     class OpenFile
       extend Forwardable
 
-      # Explicitly exclude :path, because rubyzip uses that to detect "real"
-      # files.
+      # Explicitly exclude :path, because rubyzip uses that to detect "real" files.
       def_delegators :@file, *(Zip::File::IO_METHODS - [:path])
 
       # Even though :size is not in IO_METHODS, we do need it.
@@ -283,7 +282,7 @@ module ObjectStorage
           IO.copy_stream(path, file)
         else
           streamer = lambda { |chunk, _, _| file.write(chunk) }
-          Excon.get(url, :response_block => streamer)
+          Excon.get(url, response_block: streamer)
         end
 
         file.seek(0, IO::SEEK_SET)

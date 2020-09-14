@@ -358,7 +358,7 @@ RSpec.describe ObjectStorage do
       when_file_is_in_use do
         expect(uploader).not_to receive(:unsafe_migrate!)
 
-        expect { uploader.migrate!(described_class::Store::REMOTE) }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
+        expect { uploader.migrate!(described_class::Store::REMOTE) }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
       end
     end
 
@@ -366,7 +366,7 @@ RSpec.describe ObjectStorage do
       when_file_is_in_use do
         expect(uploader).not_to receive(:unsafe_use_file)
 
-        expect { uploader.use_file }.to raise_error(::Gitlab::ExclusiveLeaseHelpers::FailedToObtainLockError)
+        expect { uploader.use_file }.to raise_error(ObjectStorage::ExclusiveLeaseTaken)
       end
     end
 
@@ -863,6 +863,21 @@ RSpec.describe ObjectStorage do
           expect(avatars.map(&:upload).uniq).to eq(avatars.map(&:upload))
         end
       end
+    end
+  end
+
+  describe 'OpenFile' do
+    subject { ObjectStorage::Concern::OpenFile.new(file) }
+
+    let(:file) { double(read: true, size: true, path: true) }
+
+    it 'delegates read and size methods' do
+      expect(subject.read).to eq(true)
+      expect(subject.size).to eq(true)
+    end
+
+    it 'does not delegate path method' do
+      expect { subject.path }.to raise_error(NoMethodError)
     end
   end
 end
