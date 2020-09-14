@@ -3,9 +3,10 @@
 require 'spec_helper'
 
 RSpec.describe Projects::UpdateRemoteMirrorService do
-  let(:project) { create(:project, :repository) }
-  let(:remote_project) { create(:forked_project_with_submodules) }
-  let(:remote_mirror) { create(:remote_mirror, project: project, enabled: true) }
+  let_it_be(:project) { create(:project, :repository, lfs_enabled: true) }
+  let_it_be(:remote_project) { create(:forked_project_with_submodules) }
+  let_it_be(:remote_mirror) { create(:remote_mirror, project: project, enabled: true) }
+
   let(:remote_name) { remote_mirror.remote_name }
 
   subject(:service) { described_class.new(project, project.creator) }
@@ -129,74 +130,68 @@ RSpec.describe Projects::UpdateRemoteMirrorService do
     end
 
     context "sending lfs objects" do
-      let!(:lfs_object) { create(:lfs_objects_project, project: project).lfs_object }
-      let(:sample_lfs_object) { project.lfs_objects.first }
-      let(:spec) do
-        {
-          "objects" => [{
-            "oid" => sample_lfs_object.oid,
-            "size" => sample_lfs_object.size,
-            "actions" => {
-              "upload" => {
-                "href" => "https://example.com/some/file",
-                "header" => {
-                  "Key" => "value"
-                }
-              },
-              "verify" => {
-                "href" => "https://example.com/some/file/verify",
-                "header" => {
-                  "Key" => "value"
-                }
-              }
-            }
-          }]
-        }
+      let_it_be(:lfs_pointer) { create(:lfs_objects_project, project: project) }
+
+      before do
+        stub_lfs_setting(enabled: true)
       end
 
-      shared_examples "returns early without attempting upload" do
-        it "returns early without attempting upload" do
-          expect(Gitlab::Lfs::Client).not_to receive(:upload)
+      context 'feature flag enabled' do
+        before do
+          stub_feature_flags(push_mirror_syncs_lfs: true)
+        end
+
+        it 'pushes LFS objects to a HTTP repository' do
+          expect_next_instance_of(Lfs::PushService) do |service|
+            expect(service).to receive(:execute)
+          end
+
+          execute!
+        end
+
+        it 'does nothing to an SSH repository' do
+          remote_mirror.update!(url: 'ssh://example.com')
+
+          expect_any_instance_of(Lfs::PushService).not_to receive(:execute)
+
+          execute!
+        end
+
+        it 'does nothing if LFS is disabled' do
+          expect(project).to receive(:lfs_enabled?) { false }
+
+          expect_any_instance_of(Lfs::PushService).not_to receive(:execute)
+
+          execute!
+        end
+
+        it 'does nothing with no LFS objects' do
+          lfs_pointer.destroy!
+
+          expect_any_instance_of(Lfs::PushService).not_to receive(:execute)
+
+          execute!
+        end
+
+        it 'does nothing if non-password auth is specified' do
+          remote_mirror.update!(auth_method: 'ssh_public_key')
+
+          expect_any_instance_of(Lfs::PushService).not_to receive(:execute)
 
           execute!
         end
       end
 
-      context "object and and spec size do not match" do
+      context 'feature flag disabled' do
         before do
-          project.update_attribute(:lfs_enabled, true)
-          allow(Gitlab.config.lfs).to receive(:enabled).and_return(true)
-
-          spec['objects'].first['size'] = sample_lfs_object.size + 1
-
-          expect(Gitlab::HTTP).to receive(:post).and_return(spec)
+          stub_feature_flags(push_mirror_syncs_lfs: false)
         end
 
-        it_behaves_like "returns early without attempting upload"
-
-        it "logs a warning about the size mismatch" do
-          expect(Rails.logger)
-            .to receive(:warn)
-            .with("Couldn't match #{spec['objects'].first['oid']} at size #{spec['objects'].first['size']} with an LFS object")
+        it 'does nothing' do
+          expect_any_instance_of(Lfs::PushService).not_to receive(:execute)
 
           execute!
         end
-      end
-
-      context "missing 'actions'" do
-        before do
-          spec['objects'].first.delete('actions')
-        end
-
-        it_behaves_like "returns early without attempting upload"
-      end
-
-      context "missing 'upload' action" do
-        before do
-          spec['objects'].first['actions'].delete('upload')
-        end
-
-        it_behaves_like "returns early without attempting upload"
       end
     end
   end

@@ -18,7 +18,10 @@ RSpec.describe Lfs::PushService do
     context 'upload is requested' do
       it 'uploads the object' do
         stub_lfs_batch(lfs_object)
-        expect(lfs_client).to receive(:upload).with(lfs_object, upload_action_spec(lfs_object))
+
+        expect(lfs_client)
+          .to receive(:upload)
+          .with(lfs_object, upload_action_spec(lfs_object), authenticated: true)
 
         expect(service.execute).to eq(status: :success)
       end
@@ -36,8 +39,8 @@ RSpec.describe Lfs::PushService do
 
     context 'non-project-repository LFS objects' do
       let_it_be(:nil_lfs_object) { create_linked_lfs_object(project, nil) }
+      let_it_be(:wiki_lfs_object) { create_linked_lfs_object(project, :wiki) }
       let_it_be(:design_lfs_object) { create_linked_lfs_object(project, :design) }
-      let_it_be(:wiki_lfs_object)   { create_linked_lfs_object(project, :wiki) }
 
       it 'only tries to upload the project-repository LFS object' do
         stub_lfs_batch(nil_lfs_object, lfs_object, upload: false)
@@ -79,10 +82,9 @@ RSpec.describe Lfs::PushService do
   end
 
   def object_spec(object, upload: true)
-    out = { 'oid' => object.oid, 'size' => object.size }
-    out['actions'] = { 'upload' => upload_action_spec(object) } if upload
-
-    out
+    { 'oid' => object.oid, 'size' => object.size, 'authenticated' => true }.tap do |spec|
+      spec['actions'] = { 'upload' => upload_action_spec(object) } if upload
+    end
   end
 
   def upload_action_spec(object)
