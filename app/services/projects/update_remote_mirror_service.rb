@@ -51,7 +51,8 @@ module Projects
       return unless project.lfs_enabled?
       return if project.lfs_objects.count == 0
 
-      # TODO: LFS sync over SSH
+      # TODO: Support LFS sync over SSH
+      # https://gitlab.com/gitlab-org/gitlab/-/issues/249587
       return unless remote_mirror.url =~ /\Ahttps?:\/\//i
       return unless remote_mirror.password_auth?
 
