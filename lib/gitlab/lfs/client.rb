@@ -30,6 +30,8 @@ module Gitlab
 
         raise BatchSubmitError unless rsp.success?
 
+        # HTTParty provides rsp.parsed_response, but it only kicks in for the
+        # application/json content type in the response, which we can't rely on
         body = Gitlab::Json.parse(rsp.body)
         transfer = body.fetch('transfer', 'basic')
 
