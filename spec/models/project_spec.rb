@@ -2901,7 +2901,7 @@ RSpec.describe Project do
     end
   end
 
-  describe '#lfs_objects_for_repository_type' do
+  describe '#lfs_objects_for_repository_types' do
     let(:project) { create(:project) }
 
     it 'returns LFS objects of the specified type only' do
