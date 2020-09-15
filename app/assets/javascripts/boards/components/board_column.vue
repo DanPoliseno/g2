@@ -135,38 +135,14 @@ export default {
         });
       };
 
-      boardsStore.generateDefaultLists().then(() => {
-        window.location.reload();
-      });
-      /*
-
-      const loadListIssues = listObj => {
-        const list = boardsStore.findList('title', listObj.title);
-
-        if (!list) {
-          return null;
-        }
-
-        list.id = listObj.id;
-        list.label.id = listObj.label.id;
-        return list.getIssues().catch(() => {
-          // TODO: handle request error
-        });
-      };
-
-      // Save the labels
       boardsStore
         .generateDefaultLists()
-        .then(res => res.data)
-        .then(data => Promise.all(data.map(loadListIssues)))
+        .then(() => {
+          window.location.reload();
+        })
         .catch(() => {
-          boardsStore.removeList(undefined, 'label');
-          Cookies.remove('issue_board_welcome_hidden', {
-            path: '',
-          });
-          boardsStore.addBlankState();
+          // TODO: handle request error
         });
-        */
     },
     clearBlankState: boardsStore.removeBlankState.bind(boardsStore),
   },
