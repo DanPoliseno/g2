@@ -1069,13 +1069,17 @@ module Ci
         .base_and_ancestors
     end
 
+    # We need `base_and_ancestors` in a specific order to "break" when needed.
+    # If we use `find_each`, then the order is broken.
+    # rubocop:disable Rails/FindEach
     def reset_ancestor_bridges!
-      base_and_ancestors.includes(:source_bridge).find_each do |pipeline|
+      base_and_ancestors.includes(:source_bridge).each do |pipeline|
         break unless pipeline.bridge_waiting?
 
         pipeline.source_bridge.pending!
       end
     end
+    # rubocop:enable Rails/FindEach
 
     private
 
