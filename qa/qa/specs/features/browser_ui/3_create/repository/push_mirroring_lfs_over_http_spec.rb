@@ -3,7 +3,8 @@
 module QA
   RSpec.describe 'Create' do
     describe 'Push mirror a repository over HTTP' do
-      it 'configures and syncs a (push) mirrored repository', testcase: 'https://gitlab.com/gitlab-org/quality/testcases/-/issues/414' do
+      it 'configures and syncs LFS objects for a (push) mirrored repository', testcase: 'https://gitlab.com/gitlab-org/quality/testcases/-/issues/414' do
+        Runtime::Feature.enable_and_verify('push_mirror_syncs_lfs')
         Runtime::Browser.visit(:gitlab, Page::Main::Login)
         Page::Main::Login.perform(&:sign_in_using_credentials)
 
@@ -17,6 +18,7 @@ module QA
           push.file_name = 'README.md'
           push.file_content = '# This is a test project'
           push.commit_message = 'Add README.md'
+          push.use_lfs = true
         end
         source_project_push.project.visit!
 
@@ -36,7 +38,7 @@ module QA
         # Check that the target project has the commit from the source
         target_project.visit!
         expect(page).to have_content('README.md')
-        expect(page).to have_content('This is a test project')
+        expect(page).to have_content('The rendered file could not be displayed because it is stored in LFS')
       end
     end
   end
