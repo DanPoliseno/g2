@@ -107,6 +107,22 @@ RSpec.describe Gitlab::Lfs::Client do
       end
     end
 
+    context 'LFS object has no file' do
+      let(:object) { LfsObject.new }
+
+      it 'makes an HJTT PUT with expected parameters' do
+        stub = stub_upload(
+          object: object,
+          headers: upload_action['header']
+        ).to_return(status: 200)
+
+        lfs_client.upload(object, upload_action, authenticated: true)
+
+        expect(stub).to have_been_requested
+      end
+    end
+
+
     context 'server returns 400 error' do
       it 'raises an error' do
         stub_upload(object: object, headers: upload_action['header']).to_return(status: 400)
