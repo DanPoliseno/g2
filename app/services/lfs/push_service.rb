@@ -32,7 +32,6 @@ module Lfs
     end
 
     def upload_object!(object, spec)
-      size = spec['size'].to_i
       authenticated = spec['authenticated']
       upload = spec.dig('actions', 'upload')
 
