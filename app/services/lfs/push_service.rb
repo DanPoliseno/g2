@@ -23,27 +23,33 @@ module Lfs
       objects = objects.index_by(&:oid)
 
       rsp.fetch('objects', []).each do |spec|
-        authenticated = spec.dig('authenticated')
-        actions = spec.dig('actions')
-        upload = spec.dig('actions', 'upload')
-        verify = spec.dig('actions', 'verify')
-
-        # The server already has this object, or we don't need to upload it
-        next unless actions && upload
-
+        actions = spec['actions']
         object = objects[spec['oid']]
-        # The server wants us to upload the object but something is wrong
-        unless object && object.size == spec['size'].to_i
-          log_error("Couldn't match object #{spec['oid']}/#{spec['size']}")
-          next
-        end
 
-        lfs_client.upload(object, upload, authenticated: authenticated)
-
-        if verify
-          log_error("LFS upload verification requested, but not supported for #{object.oid}")
-        end
+        upload_object!(object, spec) if actions&.key?('upload')
+        verify_object!(object, spec) if actions&.key?('verify')
       end
+    end
+
+    def upload_object!(object, spec)
+      size = spec['size'].to_i
+      authenticated = spec['authenticated']
+      upload = spec.dig('actions', 'upload')
+
+      # The server wants us to upload the object but something is wrong
+      unless object && object.size == spec['size'].to_i
+        log_error("Couldn't match object #{spec['oid']}/#{spec['size']}")
+        return
+      end
+
+      lfs_client.upload(object, upload, authenticated: authenticated)
+    end
+
+    def verify_object!(object, spec)
+      verify = spec.dig('actions', 'verify')
+      return unless verify
+
+      log_error("LFS upload verification requested, but not supported for #{object.oid}")
     end
 
     def url
