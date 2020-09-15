@@ -262,7 +262,7 @@ describe('IDE commit form', () => {
       it('opens new branch modal if commitChanges throws an error', () => {
         vm.commitChanges.mockRejectedValue({ success: false });
 
-        jest.spyOn(vm.$refs.createBranchModal, 'show').mockImplementation();
+        jest.spyOn(vm.$refs.commitErrorModal, 'show').mockImplementation();
 
         return vm
           .$nextTick()
@@ -272,7 +272,7 @@ describe('IDE commit form', () => {
             return vm.$nextTick();
           })
           .then(() => {
-            expect(vm.$refs.createBranchModal.show).toHaveBeenCalled();
+            expect(vm.$refs.commitErrorModal.show).toHaveBeenCalled();
           });
       });
     });
