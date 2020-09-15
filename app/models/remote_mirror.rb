@@ -211,8 +211,7 @@ class RemoteMirror < ApplicationRecord
   end
 
   def bare_url
-    original = read_attribute(:url)
-    Gitlab::UrlSanitizer.new(original).full_url if original
+    Gitlab::UrlSanitizer.new(read_attribute(:url)).full_url
   end
 
   def ensure_remote!
