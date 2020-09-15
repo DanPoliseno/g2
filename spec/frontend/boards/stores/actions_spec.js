@@ -3,7 +3,6 @@ import {
   mockListsWithModel,
   mockLists,
   mockIssue,
-  mockIssue2,
   mockIssueWithModel,
   mockIssue2WithModel,
   rawIssue,
@@ -11,12 +10,18 @@ import {
 import actions, { gqlClient } from '~/boards/stores/actions';
 import * as types from '~/boards/stores/mutation_types';
 import { inactiveId, ListType } from '~/boards/constants';
+import issueMoveListMutation from '~/boards/queries/issue_move_list.mutation.graphql';
+import { fullBoardId } from '~/boards/boards_util';
 
 const expectNotImplemented = action => {
   it('is not implemented', () => {
     expect(action).toThrow(new Error('Not implemented!'));
   });
 };
+
+// We need this helper to make sure projectPath is including
+// subgroups when the movIssue action is called.
+const getProjectPath = path => path.split('#')[0];
 
 describe('setInitialBoardData', () => {
   it('sets data object', () => {
@@ -134,7 +139,7 @@ describe('createList', () => {
       { backlog: true },
       state,
       [],
-      [{ type: 'addList', payload: { ...backlogList, id: 1 } }],
+      [{ type: 'addList', payload: backlogList }],
       done,
     );
   });
@@ -232,19 +237,15 @@ describe('deleteList', () => {
   expectNotImplemented(actions.deleteList);
 });
 
-describe('fetchIssuesForList', () => {
-  expectNotImplemented(actions.fetchIssuesForList);
-});
-
 describe('moveIssue', () => {
   const listIssues = {
-    'gid://gitlab/List/1': [mockIssue.id, mockIssue2.id],
+    'gid://gitlab/List/1': [436, 437],
     'gid://gitlab/List/2': [],
   };
 
   const issues = {
-    '1': mockIssueWithModel,
-    '2': mockIssue2WithModel,
+    '436': mockIssueWithModel,
+    '437': mockIssue2WithModel,
   };
 
   const state = {
@@ -269,7 +270,7 @@ describe('moveIssue', () => {
     testAction(
       actions.moveIssue,
       {
-        issueId: mockIssue.id,
+        issueId: '436',
         issueIid: mockIssue.iid,
         issuePath: mockIssue.referencePath,
         fromListId: 'gid://gitlab/List/1',
@@ -295,6 +296,42 @@ describe('moveIssue', () => {
     );
   });
 
+  it('calls mutate with the correct variables', () => {
+    const mutationVariables = {
+      mutation: issueMoveListMutation,
+      variables: {
+        projectPath: getProjectPath(mockIssue.referencePath),
+        boardId: fullBoardId(state.endpoints.boardId),
+        iid: mockIssue.iid,
+        fromListId: 1,
+        toListId: 2,
+        moveBeforeId: undefined,
+        moveAfterId: undefined,
+      },
+    };
+    jest.spyOn(gqlClient, 'mutate').mockResolvedValue({
+      data: {
+        issueMoveList: {
+          issue: rawIssue,
+          errors: [],
+        },
+      },
+    });
+
+    actions.moveIssue(
+      { state, commit: () => {} },
+      {
+        issueId: mockIssue.id,
+        issueIid: mockIssue.iid,
+        issuePath: mockIssue.referencePath,
+        fromListId: 'gid://gitlab/List/1',
+        toListId: 'gid://gitlab/List/2',
+      },
+    );
+
+    expect(gqlClient.mutate).toHaveBeenCalledWith(mutationVariables);
+  });
+
   it('should commit MOVE_ISSUE mutation and MOVE_ISSUE_FAILURE mutation when unsuccessful', done => {
     jest.spyOn(gqlClient, 'mutate').mockResolvedValue({
       data: {
@@ -308,7 +345,7 @@ describe('moveIssue', () => {
     testAction(
       actions.moveIssue,
       {
-        issueId: mockIssue.id,
+        issueId: '436',
         issueIid: mockIssue.iid,
         issuePath: mockIssue.referencePath,
         fromListId: 'gid://gitlab/List/1',

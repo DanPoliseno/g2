@@ -12,6 +12,7 @@ module AlertManagement
     include Gitlab::SQL::Pattern
     include Presentable
     include Gitlab::Utils::StrongMemoize
+    include Referable
 
     STATUSES = {
       triggered: 0,
@@ -117,7 +118,7 @@ module AlertManagement
     end
 
     delegate :iid, to: :issue, prefix: true, allow_nil: true
-    delegate :metrics_dashboard_url, :details_url, :details, to: :present
+    delegate :details_url, to: :present
 
     scope :for_iid, -> (iid) { where(iid: iid) }
     scope :for_status, -> (status) { where(status: status) }
@@ -170,6 +171,25 @@ module AlertManagement
       with_prometheus_alert.where(id: ids)
     end
 
+    def self.reference_prefix
+      '^alert#'
+    end
+
+    def self.reference_pattern
+      @reference_pattern ||= %r{
+        (#{Project.reference_pattern})?
+        #{Regexp.escape(reference_prefix)}(?<alert>\d+)
+      }x
+    end
+
+    def self.link_reference_pattern
+      @link_reference_pattern ||= super("alert_management", /(?<alert>\d+)\/details(\#)?/)
+    end
+
+    def self.reference_valid?(reference)
+      reference.to_i > 0 && reference.to_i <= Gitlab::Database::MAX_INT_VALUE
+    end
+
     def prometheus?
       monitoring_tool == Gitlab::AlertManagement::AlertParams::MONITORING_TOOLS[:prometheus]
     end
@@ -178,10 +198,10 @@ module AlertManagement
       increment!(:events)
     end
 
-    # required for todos (typically contains an identifier like issue iid)
-    #  no-op; we could use iid, but we don't have a reference prefix
-    def to_reference(_from = nil, full: false)
-      ''
+    def to_reference(from = nil, full: false)
+      reference = "#{self.class.reference_prefix}#{iid}"
+
+      "#{project.to_reference_base(from, full: full)}#{reference}"
     end
 
     def execute_services
@@ -196,12 +216,6 @@ module AlertManagement
       strong_memoize(:parsed_payload) do
         Gitlab::AlertManagement::Payload.parse(project, payload, monitoring_tool: monitoring_tool)
       end
-    end
-
-    def present
-      return super(presenter_class: AlertManagement::PrometheusAlertPresenter) if prometheus?
-
-      super
     end
 
     private
