@@ -2909,9 +2909,9 @@ RSpec.describe Project do
         create(:lfs_objects_project, project: project, repository_type: type).lfs_object
       end
 
-      expect(project.lfs_objects_for_repository_type(nil)).to contain_exactly(none)
-      expect(project.lfs_objects_for_repository_type([nil, :wiki])).to contain_exactly(none, wiki)
-      expect(project.lfs_objects_for_repository_type(:design)).to contain_exactly(design)
+      expect(project.lfs_objects_for_repository_types(nil)).to contain_exactly(none)
+      expect(project.lfs_objects_for_repository_types(nil, :wiki)).to contain_exactly(none, wiki)
+      expect(project.lfs_objects_for_repository_types(:design)).to contain_exactly(design)
     end
   end
 

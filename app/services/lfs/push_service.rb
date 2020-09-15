@@ -8,7 +8,7 @@ module Lfs
 
     def execute
       project
-        .lfs_objects_for_repository_type([nil, :project])
+        .lfs_objects_for_repository_types(nil, :project)
         .each_batch { |objects| push_objects(objects) }
 
       success
