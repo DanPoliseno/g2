@@ -28,7 +28,7 @@ RSpec.describe Gitlab::Lfs::Client do
 
     context 'server returns 200 OK' do
       it 'makes a successful batch request' do
-        stub_batch(
+        stub = stub_batch(
           objects: objects,
           headers: basic_auth_headers
         ).to_return(
@@ -39,6 +39,7 @@ RSpec.describe Gitlab::Lfs::Client do
 
         result = lfs_client.batch('upload', objects)
 
+        expect(stub).to have_been_requested
         expect(result).to eq('objects' => 'anything', 'transfer' => 'basic')
       end
     end
@@ -95,12 +96,14 @@ RSpec.describe Gitlab::Lfs::Client do
 
     context 'server returns 200 OK to an unauthenticated request' do
       it "makes an HTTP PUT with expected parameters" do
-        stub_upload(
+        stub = stub_upload(
           object: object,
           headers: basic_auth_headers.merge(upload_action['header'])
         ).to_return(status: 200)
 
         lfs_client.upload(object, upload_action, authenticated: false)
+
+        expect(stub).to have_been_requested
       end
     end
 
