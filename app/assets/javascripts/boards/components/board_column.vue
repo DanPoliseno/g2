@@ -121,20 +121,6 @@ export default {
       eventHub.$emit('showForm', listId);
     },
     addDefaultLists() {
-      const loadListIssues = listObj => {
-        const list = boardsStore.findList('title', listObj.title);
-
-        if (!list) {
-          return null;
-        }
-
-        list.id = listObj.id;
-        list.label.id = listObj.label.id;
-        return list.getIssues().catch(() => {
-          // TODO: handle request error
-        });
-      };
-
       boardsStore
         .generateDefaultLists()
         .then(() => {
