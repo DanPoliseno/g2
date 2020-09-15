@@ -7,7 +7,9 @@ module Lfs
     include Gitlab::Utils::StrongMemoize
 
     def execute
-      project.lfs_objects_of_type([nil, :project]).each_batch { |objects| push_objects(objects) }
+      project
+        .lfs_objects_for_repository_type([nil, :project])
+        .each_batch { |objects| push_objects(objects) }
 
       success
     rescue => err

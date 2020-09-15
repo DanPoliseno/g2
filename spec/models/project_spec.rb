@@ -2901,7 +2901,7 @@ RSpec.describe Project do
     end
   end
 
-  describe '#lfs_objects_of_type' do
+  describe '#lfs_objects_for_repository_type' do
     let(:project) { create(:project) }
 
     it 'returns LFS objects of the specified type only' do
@@ -2909,9 +2909,9 @@ RSpec.describe Project do
         create(:lfs_objects_project, project: project, repository_type: type).lfs_object
       end
 
-      expect(project.lfs_objects_of_type(nil)).to contain_exactly(none)
-      expect(project.lfs_objects_of_type([nil, :wiki])).to contain_exactly(none, wiki)
-      expect(project.lfs_objects_of_type(:design)).to contain_exactly(design)
+      expect(project.lfs_objects_for_repository_type(nil)).to contain_exactly(none)
+      expect(project.lfs_objects_for_repository_type([nil, :wiki])).to contain_exactly(none, wiki)
+      expect(project.lfs_objects_for_repository_type(:design)).to contain_exactly(design)
     end
   end
 
