@@ -122,7 +122,6 @@ RSpec.describe Gitlab::Lfs::Client do
       end
     end
 
-
     context 'server returns 400 error' do
       it 'raises an error' do
         stub_upload(object: object, headers: upload_action['header']).to_return(status: 400)
